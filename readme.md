@@ -39,10 +39,10 @@ Routers should be registered in `index.js` using a **parent domain path**.
 ```js
 // index.js
 const userRouter = require('./router/userRouter');
-app.use('/users', userRouter); // Exposes /users/login, /users/me, etc.
+app.use(`${API_PREFIX}/user`, userRouter); // Exposes /users/login, /users/me, etc.
 ```
 
-> 📌 **Convention**: Use `app.use('/{domain}', {domain}Router)` format for clear route scoping.
+> 📌 **Convention**: Use `app.use(`${API_PREFIX}/user`, userRouter);` format for clear route scoping.
 
 ---
 
