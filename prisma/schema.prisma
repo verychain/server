@@ -13,3 +13,155 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// ---------------------------
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  account   String   @unique
+  password  String
+  nickname  String   @unique
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  Kyc           Kyc?
+  wallet        Wallet?
+  points        Point[]
+  notifications Notification[]
+  trades        Trade[] // 자신이 생성한 거래된
+  buyerTrades   TradeHistory[] @relation("BuyerTrades")
+  sellerTrades  TradeHistory[] @relation("SellerTrades")
+
+  @@map("users")
+}
+
+model Kyc {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  realName    String   // 실명
+  accountInfo String   // 계좌 정보
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("kyc")
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  address   String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model Point {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int      // 양수: 적립, 음수: 사용 or 차감
+  reason    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("points")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  process   Boolean  @default(false)
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+enum TradeType {
+  BUY
+  SELL
+}
+
+enum TradeStatus {
+  ACTIVE    // 활성화
+  PENDING   // 거래 진행 중
+  COMPLETED // 완료
+  CANCELLED // 취소
+  EXPIRED   // 만료
+}
+
+model Trade {
+  id          String        @id @default(cuid())
+  userId      String    
+  type        TradeType
+  amount      Decimal       @db.Decimal(18, 8)
+  price       Decimal       @db.Decimal(18, 8)
+  totalPrice  Decimal       @db.Decimal(18, 8)
+  status      TradeStatus   @default(ACTIVE)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  history TradeHistory[]
+
+  @@map("trades")
+}
+
+enum TradeHistoryStatus {
+  INITIATED         // 거래 세션 시작
+  TOKEN_DEPOSITED   // 토큰 예치 완료 (판매자가 변경)
+  PAYMENT_SENT      // 원화 입금 완료 (구매자가 변경)
+  PAYMENT_CONFIRMED // 원화 입금 확인 (판매자가 변경)
+  COMPLETED         // 거래 완료
+  FAILED            // 거래 실패
+  CANCELLED         // 거래 취소
+}
+
+model TradeHistory {
+  id            String    @id @default(cuid())
+  tradeId       String
+  buyerId       String
+  sellerId      String
+  status        TradeHistoryStatus  @default(INITIATED)
+
+  initiatedAt         DateTime  // 거래 세션 시작 시간
+  tokenDepositedAt    DateTime? // 토큰 예치 완료 시간
+  paymentSentAt       DateTime? // 원화 입금 완료 시간
+  paymentConfirmedAt  DateTime? // 원화 입금 확인 시간
+  completedAt         DateTime? // 거래 완료 시간
+  failedAt            DateTime? // 거래 실패 시간
+  cancelledAt         DateTime? // 거래 취소 시간
+  
+  txHash        String?   // 트랜잭션 해시
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  trade  Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  buyer  User  @relation("BuyerTrades", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller User  @relation("SellerTrades", fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@map("trade_histories")
+}
