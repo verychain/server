@@ -13,3 +13,235 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// ---------------------------
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Grade {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+model User {
+  id            String      @id @default(cuid())
+  account       String      @unique                // 이메일
+  password      String                             // 비밀번호
+  nickname      String      @unique                // 닉네임
+  nation        String                             // 국가
+  phone         String      @unique                // 전화번호
+  grade         Grade       @default(BRONZE)       // 멤버십 등급
+  role          Role        @default(USER)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+
+  Kyc           Kyc?
+  wallet        Wallet?
+  points        Point[]
+  notifications Notification[]
+  trades        Trade[]                                   // 내가 생성한 거래
+  buyerTrades   TradeHistory[] @relation("BuyerTrades")   // 내가 구매한 거래
+  sellerTrades  TradeHistory[] @relation("SellerTrades")  // 내가 판매한 거래
+  fromUserLikes LikeUser[] @relation("FromUserLikes")  // 내가 준 좋아요
+  toUserLikes   LikeUser[] @relation("ToUserLikes")    // 내가 받은 좋아요
+  customerServices CustomerService[]                      // 고객센터 문의
+
+  @@map("users")
+}
+
+model Kyc {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  realName    String                          // 실명
+  bankName    String                          // 은행
+  account     String                          // 계좌 번호
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("kyc")
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  address   String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+enum PointReason {
+  TRADE_SUCCESS     // 거래 성공시
+  AD_WATCH          // 광고 시청시
+  TRADE_CANCEL      // 거래 강제 취소시
+}
+
+model Point {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int      // 양수: 적립, 음수: 사용 or 차감
+  reason    PointReason
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("points")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  process   Boolean  @default(false)
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ---------------------------
+
+enum TradeType {
+  BUY
+  SELL
+}
+
+enum TradeStatus {
+  ACTIVE    // 활성화
+  PENDING   // 거래 진행 중
+  COMPLETED // 완료
+  CANCELLED // 취소
+  EXPIRED   // 만료
+}
+
+enum TradeOption {
+  BANK_TRANSFER   // 계좌이체
+}
+
+model Trade {
+  id            String        @id @default(cuid())
+  userId        String    
+  type          TradeType
+
+  baseSymbol    String        // 기준 통화 (ex. VERY)
+  quoteSymbol   String        // 쿼트 통화 (ex. KRW, USDT)
+  minAmount     Decimal       @db.Decimal(18, 8)
+  maxAmount     Decimal       @db.Decimal(18, 8)
+  price         Decimal       @db.Decimal(18, 8)  // 1개당 가격
+  option        TradeOption   @default(BANK_TRANSFER)      
+
+  status        TradeStatus   @default(ACTIVE)
+  expiresAt     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  history TradeHistory[]
+  priceHistories PriceHistory[]
+  customerServices CustomerService[]
+
+  @@map("trades")
+}
+
+enum TradeHistoryStatus {
+  INITIATED         // 거래 세션 시작
+  TOKEN_DEPOSITED   // 토큰 예치 완료 (판매자가 변경)
+  PAYMENT_SENT      // 원화 입금 완료 (구매자가 변경)
+  PAYMENT_CONFIRMED // 원화 입금 확인 (판매자가 변경)
+  COMPLETED         // 거래 완료
+  CANCELLED         // 거래 취소
+  FAILED            // 거래 실패 (= 이의 제기)
+}
+
+model TradeHistory {
+  id                  String              @id @default(cuid())
+  tradeId             String
+  buyerId             String
+  sellerId            String
+  status              TradeHistoryStatus  @default(INITIATED)
+
+  fixedAmount         Decimal             @db.Decimal(18, 8)    // 최종 수량
+  totalPrice          Decimal             @db.Decimal(18, 8)    // 최종 총 가격
+  fee                 Decimal             @db.Decimal(18, 8)    // 플랫폼에 지불할 수수료
+
+  initiatedAt         DateTime            // 거래 세션 시작 시간
+  tokenDepositedAt    DateTime?           // 토큰 예치 완료 시간
+  paymentSentAt       DateTime?           // 원화 입금 완료 시간
+  paymentConfirmedAt  DateTime?           // 원화 입금 확인 시간
+  completedAt         DateTime?           // 거래 완료 시간
+  failedAt            DateTime?           // 거래 실패 시간
+  cancelledAt         DateTime?           // 거래 취소 시간
+  
+  txHash              String?             // 트랜잭션 해시
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  deletedAt           DateTime?
+
+  trade  Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  buyer  User  @relation("BuyerTrades", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller User  @relation("SellerTrades", fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@map("trade_histories")
+}
+
+model PriceHistory {
+  id            String    @id @default(cuid())
+  tradeId       String
+  baseSymbol    String
+  quoteSymbol   String
+  price         Decimal   @db.Decimal(18, 8)
+  amount        Decimal   @db.Decimal(18, 8)
+  createdAt     DateTime  @default(now())
+
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  
+  @@map("price_histories")
+}
+
+model LikeUser {
+  id            String    @id @default(cuid())
+  fromUserId    String
+  toUserId      String
+
+  fromUser User @relation("FromUserLikes", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("ToUserLikes", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId]) // 좋아요 중복 방지
+
+  @@map("like_users")
+}
+
+model CustomerService {
+  id            String    @id @default(cuid())
+  userId        String 
+  tradeId       String
+  content       String    // 문의 내용
+  process       Boolean   @default(true)  // 진행 중 (true), 완료 (false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  @@map("customer_services")
+}

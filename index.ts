@@ -1,25 +1,25 @@
-require('dotenv').config();
-
-const express = require('express');
+import express from "express";
+import dotenv from "dotenv";
+dotenv.config();
 
 const PORT = process.env.PORT || 3000;
-const API_PREFIX = process.env.API_PREFIX || '/api';
+const API_PREFIX = process.env.API_PREFIX || "/api";
 
 const app = express();
 
 app.use(express.json());
 
 // laod Router
-const userRouter = require('./router/userRouter');
-const tradeRouter = require('./router/tradeRouter');
+import userRouter from "./router/userRouter";
+import tradeRouter from "./router/tradeRouter";
 
 // register routers
 app.use(`${API_PREFIX}/user`, userRouter);
 app.use(`${API_PREFIX}/trade`, tradeRouter);
 
 // just for testing
-app.get('/ping', (req, res) => {
-  res.send('pong');
+app.get("/ping", (req, res) => {
+  res.send("pong");
 });
 
 app.listen(PORT, () => {
