@@ -30,7 +30,7 @@ enum Grade {
 
 model User {
   id            String      @id @default(cuid())
-  account       String      @unique                // 이메일
+  username      String      @unique                // 이메일
   password      String                             // 비밀번호
   nickname      String      @unique                // 닉네임
   nation        String                             // 국가

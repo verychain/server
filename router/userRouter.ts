@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { UserController } from "@/domain/user/controller/userController";
+import { userController } from "@/domain/user/controller/userController";
 
 const router = Router();
-const userController = new UserController();
 
 // 라우트 작성
+router.post("/signup", userController.signup.bind(userController));
 
 export default router;

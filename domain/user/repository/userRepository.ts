@@ -15,15 +15,21 @@ export class UserRepository {
     });
   }
 
-  async findUserByAccount(account: string) {
+  async findUserByUsername(username: string) {
     return await this.prisma.user.findUnique({
-      where: { account },
+      where: { username },
     });
   }
 
   async findUserByPhone(phone: string) {
     return await this.prisma.user.findUnique({
       where: { phone },
+    });
+  }
+
+  async findUserByNickname(nickname: string) {
+    return await this.prisma.user.findUnique({
+      where: { nickname },
     });
   }
 
@@ -47,4 +53,7 @@ export class UserRepository {
   }
 }
 
-module.exports = UserRepository;
+// ========================================================
+// Exporting an instance of UserRepository
+// ========================================================
+export const userRepository = new UserRepository();
