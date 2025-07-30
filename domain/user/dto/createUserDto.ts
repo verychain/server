@@ -3,7 +3,7 @@ import { Grade, Role } from "@prisma/client";
 
 export class CreateUserDto {
   @IsEmail()
-  account: string;
+  username: string;
 
   @IsString()
   password: string;

@@ -2,7 +2,6 @@ import { Router } from "express";
 import { TradeController } from "@/domain/trade/controller/tradeController";
 
 const router = Router();
-const tradeController = new TradeController();
 
 // 라우트 작성
 
