@@ -47,8 +47,14 @@ export class UserRepository {
   }
 
   async deleteUser(id: string) {
-    return await this.prisma.user.delete({
+    // not delete row, just update deletedAt
+    // return await this.prisma.user.delete({
+    //   where: { id },
+    // });
+
+    return await this.prisma.user.update({
       where: { id },
+      data: { deletedAt: new Date() }, // Soft delete
     });
   }
 }
