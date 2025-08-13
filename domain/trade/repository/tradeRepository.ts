@@ -1,6 +1,8 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, TradeHistoryStatus, TradeStatus } from "@prisma/client";
 import { CreateTradeDto } from "../dto/createTradeDto";
 import { FindTradeDto } from "../dto/findTradeDto";
+import { CreateTradeHistoryDto } from "../dto/createTradeHistory";
+import { CreatePriceHistoryDto } from "../dto/createPriceHistory";
 
 export class TradeRepository {
   private prisma: PrismaClient;
@@ -98,9 +100,9 @@ export class TradeRepository {
     };
   }
 
-  async createTrade(userId: string, tradeData: CreateTradeDto) {
+  async createTrade(userId: string, data: CreateTradeDto) {
     return await this.prisma.trade.create({
-      data: { ...tradeData, userId },
+      data: { ...data, userId },
       include: { user: true },
     });
   }
@@ -110,6 +112,61 @@ export class TradeRepository {
       where: { id },
       data: { deletedAt: new Date() },
       include: { user: true },
+    });
+  }
+
+  async updateTradeStatus(id: string, status: TradeStatus) {
+    return await this.prisma.trade.update({
+      where: { id },
+      data: { status: status },
+    });
+  }
+
+  // -------------------------------
+
+  async findTradeHistoryByTradeId(tradeId: string) {
+    return await this.prisma.tradeHistory.findFirst({
+      where: { tradeId, deletedAt: null },
+    });
+  }
+
+  async createTradeHistory(tradeId: string, data: CreateTradeHistoryDto) {
+    return await this.prisma.tradeHistory.create({
+      data: { ...data, tradeId },
+    });
+  }
+
+  async updateTradeHistoryStatus(
+    id: string,
+    status: TradeHistoryStatus,
+    txHash?: string
+  ) {
+    const updateData: any = { status };
+
+    if (status === "TOKEN_DEPOSITED") {
+      updateData.tokenDepositedAt = new Date();
+      updateData.sellerTxHash = txHash;
+    }
+    if (status === "PAYMENT_CONFIRMED")
+      updateData.paymentConfirmedAt = new Date();
+    if (status === "COMPLETED") {
+      updateData.completedAt = new Date();
+      updateData.contractTxHash = txHash;
+    }
+    if (status === "CANCELLED") updateData.cancelledAt = new Date();
+    if (status === "FAILED") updateData.failedAt = new Date();
+
+    return await this.prisma.tradeHistory.update({
+      where: { id },
+      data: updateData,
+    });
+  }
+
+  // -------------------------------
+
+  async createPriceHistory(tradeId: string, data: CreatePriceHistoryDto) {
+    return await this.prisma.priceHistory.create({
+      data: { ...data, tradeId },
     });
   }
 }

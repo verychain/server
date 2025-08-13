@@ -6,6 +6,7 @@ import {
 import { HttpError } from "@/common/error/errors";
 import { CreateTradeDto } from "../dto/createTradeDto";
 import { FindTradeDto } from "../dto/findTradeDto";
+import { RequestTradeDto } from "../dto/requestTradeDto";
 
 export class TradeController {
   constructor(private readonly tradeService: TradeService) {}
@@ -84,6 +85,76 @@ export class TradeController {
         return res.status(error.statusCode).json({ message: error.message });
       }
       console.error("[deleteTrade@TradeController] Error:", error);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+
+  // -------------------------------
+
+  async requestTrade(req: Request, res: Response): Promise<Response> {
+    try {
+      const user = req.user;
+      const { id } = req.params;
+      const request: RequestTradeDto = req.body;
+
+      const result = await this.tradeService.requestTrade(user, id, request);
+      return res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.statusCode).json({ message: error.message });
+      }
+      console.error("[requestTrade@TradeController] Error:", error);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+
+  async despositToken(req: Request, res: Response): Promise<Response> {
+    try {
+      const user = req.user;
+      const { id } = req.params;
+      const request = req.body;
+
+      const result = await this.tradeService.despositToken(user, id, request);
+      return res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.statusCode).json({ message: error.message });
+      }
+      console.error("[despositToken@TradeController] Error:", error);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+
+  async confirmPayment(req: Request, res: Response): Promise<Response> {
+    try {
+      const user = req.user;
+      const { id } = req.params;
+      const request = req.body;
+
+      const result = await this.tradeService.confirmPayment(user, id, request);
+      return res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.statusCode).json({ message: error.message });
+      }
+      console.error("[confirmPayment@TradeController] Error:", error);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+
+  async completeTrade(req: Request, res: Response): Promise<Response> {
+    try {
+      const user = req.user;
+      const { id } = req.params;
+      const request = req.body;
+
+      const result = await this.tradeService.completeTrade(user, id, request);
+      return res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.statusCode).json({ message: error.message });
+      }
+      console.error("[completeTrade@TradeController] Error:", error);
       return res.status(500).json({ message: "Internal Server Error" });
     }
   }
