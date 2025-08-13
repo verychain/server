@@ -12,6 +12,7 @@ export class TradeRepository {
   async findTradeById(id: string) {
     return await this.prisma.trade.findUnique({
       where: { id, deletedAt: null },
+      include: { user: true },
     });
   }
 
@@ -100,6 +101,7 @@ export class TradeRepository {
   async createTrade(userId: string, tradeData: CreateTradeDto) {
     return await this.prisma.trade.create({
       data: { ...tradeData, userId },
+      include: { user: true },
     });
   }
 
@@ -107,6 +109,7 @@ export class TradeRepository {
     return await this.prisma.trade.update({
       where: { id },
       data: { deletedAt: new Date() },
+      include: { user: true },
     });
   }
 }
