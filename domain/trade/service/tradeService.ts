@@ -61,6 +61,22 @@ export class TradeService {
     }
   }
 
+  async findMyTrades(user: User, findTradeDto: FindTradeDto) {
+    try {
+      const result = await this.tradeRepository.findTradesByOptions({
+        ...findTradeDto,
+        userId: user.id,
+      });
+      return result;
+    } catch (error) {
+      console.error("[findMyTrades@TradeService] Error:", error);
+      throw new HttpError(
+        "Internal server error occurred while finding my trades",
+        500
+      );
+    }
+  }
+
   async deleteTrade(user: User, tradeId: string) {
     try {
       const trade = await this.tradeRepository.findTradeById(tradeId);
@@ -86,20 +102,193 @@ export class TradeService {
     }
   }
 
-  // 사용자의 거래만 조회
-  async findMyTrades(user: User, findTradeDto: FindTradeDto) {
+  // -------------------------------
+
+  async requestTrade(user: User, tradeId: string, request: any) {
     try {
-      const result = await this.tradeRepository.findTradesByOptions({
-        ...findTradeDto,
-        userId: user.id,
-      });
-      return result;
-    } catch (error) {
-      console.error("[findMyTrades@TradeService] Error:", error);
-      throw new HttpError(
-        "Internal server error occurred while finding my trades",
-        500
+      // 1. 거래 존재 확인
+      const trade = await this.tradeRepository.findTradeById(tradeId);
+      if (!trade) throw new HttpError("Trade not found", 404);
+
+      // 2. 자신의 거래인지
+      if (trade.userId === user.id)
+        throw new HttpError("Cannot request your own trade", 400);
+
+      // 3. 거래 상태
+      if (trade.status !== "ACTIVE")
+        throw new HttpError("Trade is not available", 400);
+
+      // 4. TradeHistory 생성
+      const tradeHistory = await this.tradeRepository.createTradeHistory(
+        tradeId,
+        {
+          buyerId: trade.type === "BUY" ? trade.userId : user.id,
+          sellerId: trade.type === "BUY" ? user.id : trade.userId,
+          fixedAmount: request.amount,
+          totalPrice: request.amount * Number(trade.price),
+          fee: request.fee,
+        }
       );
+
+      // 5. Trade 상태를 PENDING 으로 변경
+      await this.tradeRepository.updateTradeStatus(tradeId, "PENDING");
+
+      return tradeHistory;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        throw error;
+      }
+      console.error("[requestTrade@TradeService] Error:", error);
+      throw new HttpError("Failed to delete trade", 500);
+    }
+  }
+
+  async depositToken(user: User, tradeId: string, request: any) {
+    try {
+      // 1. 거래 존재 확인
+      const trade = await this.tradeRepository.findTradeById(tradeId);
+      if (!trade) throw new HttpError("Trade not found", 404);
+
+      // 2. TradeHistory 존재 확인
+      const tradeHistory = await this.tradeRepository.findTradeHistoryByTradeId(
+        tradeId
+      );
+      if (!tradeHistory) throw new HttpError("Trade history not found", 404);
+
+      // 3. 판매자만 토큰 예치 가능
+      if (tradeHistory.sellerId !== user.id) {
+        throw new HttpError("Only seller can deposit tokens", 403);
+      }
+
+      // 4. 현재 상태 확인
+      if (tradeHistory.status !== "INITIATED") {
+        throw new HttpError("Invalid trade status", 400);
+      }
+
+      // 5. 블록체인 이벤트 조회
+      const isValidDeposit = await this.verifyTokenDeposit(
+        request.txHash,
+        Number(tradeHistory.fixedAmount)
+      );
+
+      if (!isValidDeposit) {
+        throw new HttpError("Invalid token deposit amount", 400);
+      }
+
+      // 6. TradeHistory 상태 업데이트
+      const updatedTradeHistory =
+        await this.tradeRepository.updateTradeHistoryStatus(
+          tradeHistory.id,
+          "TOKEN_DEPOSITED",
+          request.txHash
+        );
+
+      return updatedTradeHistory;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        throw error;
+      }
+      console.error("[depositToken@TradeService] Error:", error);
+      throw new HttpError("Failed to delete trade", 500);
+    }
+  }
+
+  private async verifyTokenDeposit(
+    txHash: string,
+    amount: number
+  ): Promise<boolean> {
+    // TODO: 비교해서 결과값 반환
+    return true;
+  }
+
+  async confirmPayment(user: User, tradeId: string, request: any) {
+    try {
+      // 1. 거래 존재 확인
+      const trade = await this.tradeRepository.findTradeById(tradeId);
+      if (!trade) throw new HttpError("Trade not found", 404);
+
+      // 2. TradeHistory 존재 확인
+      const tradeHistory = await this.tradeRepository.findTradeHistoryByTradeId(
+        tradeId
+      );
+      if (!tradeHistory) throw new HttpError("Trade history not found", 404);
+
+      // 3. 구매자만 컨펌 가능
+      if (tradeHistory.buyerId !== user.id) {
+        throw new HttpError("Only buyer can confirm", 403);
+      }
+
+      // 4. 현재 상태 확인
+      if (tradeHistory.status !== "TOKEN_DEPOSITED") {
+        throw new HttpError("Invalid trade status", 400);
+      }
+
+      // 5. TradeHistory 상태 업데이트
+      const updatedTradeHistory =
+        await this.tradeRepository.updateTradeHistoryStatus(
+          tradeHistory.id,
+          "PAYMENT_CONFIRMED"
+        );
+
+      return updatedTradeHistory;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        throw error;
+      }
+      console.error("[confirmPayment@TradeService] Error:", error);
+      throw new HttpError("Failed to delete trade", 500);
+    }
+  }
+
+  async completeTrade(user: User, tradeId: string, request: any) {
+    try {
+      // 1. 거래 존재 확인
+      const trade = await this.tradeRepository.findTradeById(tradeId);
+      if (!trade) throw new HttpError("Trade not found", 404);
+
+      // 2. TradeHistory 존재 확인
+      const tradeHistory = await this.tradeRepository.findTradeHistoryByTradeId(
+        tradeId
+      );
+      if (!tradeHistory) throw new HttpError("Trade history not found", 404);
+
+      // 3. 판매자만 컨펌 가능
+      if (tradeHistory.sellerId !== user.id) {
+        throw new HttpError("Only seller can confirm", 403);
+      }
+
+      // 4. 현재 상태 확인
+      if (tradeHistory.status !== "PAYMENT_CONFIRMED") {
+        throw new HttpError("Invalid trade status", 400);
+      }
+
+      // 5. 블록체인
+      // TODO: 컨트랙트에서 구매자에게 토큰 송금
+      const txHash = "";
+
+      // 6. TradeHistory 상태 업데이트
+      const updatedTradeHistory =
+        await this.tradeRepository.updateTradeHistoryStatus(
+          tradeHistory.id,
+          "COMPLETED",
+          txHash
+        );
+
+      // 7. PriceHistory 생성
+      await this.tradeRepository.createPriceHistory(tradeId, {
+        baseSymbol: trade.baseSymbol,
+        quoteSymbol: trade.quoteSymbol,
+        price: Number(trade.price),
+        amount: Number(tradeHistory.fixedAmount),
+      });
+
+      return updatedTradeHistory;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        throw error;
+      }
+      console.error("[completeTrade@TradeService] Error:", error);
+      throw new HttpError("Failed to delete trade", 500);
     }
   }
 }
