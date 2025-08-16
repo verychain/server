@@ -1,4 +1,5 @@
 import { WebSocket } from "ws";
+import { userConnections } from "@/common/config/websocketConfig";
 
 export type WsMessage = {
   type: string;
@@ -13,7 +14,6 @@ export function sendToClient(ws: WebSocket, type: string, payload: any) {
 
 // 특정 유저에게 메시지
 export function sendToUser(
-  userConnections: Map<string, Set<WebSocket>>,
   userId: string,
   type: string,
   payload: any

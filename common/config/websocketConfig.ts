@@ -3,8 +3,8 @@ import http from "http";
 import jwt from "jsonwebtoken"; // JWT 검증용 (선택)
 import { sendToClient } from "@/common/utils/wsMessegeSender";
 
-const userConnections = new Map<string, Set<WebSocket>>();
-const anonymousConnections = new Set<WebSocket>();
+export const userConnections = new Map<string, Set<WebSocket>>();
+export const anonymousConnections = new Set<WebSocket>();
 
 export function setupWebSocket(server: http.Server) {
   const wss = new WebSocketServer({ server });
