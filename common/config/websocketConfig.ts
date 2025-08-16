@@ -20,8 +20,14 @@ export function setupWebSocket(server: http.Server) {
         // 로그인 인증 메시지 처리
         if (data.type === "AUTH" && data.token) {
           try {
+            if (!data.token.startsWith('Bearer ')) {
+              sendToClient(ws, "AUTH_FAILED", { reason: "Invalid token format" });
+              return 
+            }
+          
+            const token = data.token.split(' ')[1];
             // JWT 검증 (예시: username 추출)
-            const decoded: any = jwt.verify(data.token, process.env.JWT_SECRET!);
+            const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
             const username = decoded.username;
 
             // 기존 anonymous set에서 제거 후 userConnections에 추가
