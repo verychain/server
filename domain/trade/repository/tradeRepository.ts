@@ -1,4 +1,5 @@
-import { PrismaClient, TradeHistoryStatus, TradeStatus } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import { TradeHistoryStatus } from "../dto/enumType";
 import { CreateTradeDto } from "../dto/createTradeDto";
 import { FindTradeDto } from "../dto/findTradeDto";
 import { CreateTradeHistoryDto } from "../dto/createTradeHistory";
@@ -11,7 +12,7 @@ export class TradeRepository {
     this.prisma = new PrismaClient();
   }
 
-  async findTradeById(id: string) {
+  async findTradeById(id: number) {
     return await this.prisma.trade.findUnique({
       where: { id, deletedAt: null },
       include: { user: true },
@@ -100,14 +101,14 @@ export class TradeRepository {
     };
   }
 
-  async createTrade(userId: string, data: CreateTradeDto) {
+  async createTrade(userId: number, data: CreateTradeDto) {
     return await this.prisma.trade.create({
       data: { ...data, userId },
       include: { user: true },
     });
   }
 
-  async deleteTrade(id: string) {
+  async deleteTrade(id: number) {
     return await this.prisma.trade.update({
       where: { id },
       data: { deletedAt: new Date() },
@@ -115,7 +116,7 @@ export class TradeRepository {
     });
   }
 
-  async updateTradeStatus(id: string, status: TradeStatus) {
+  async updateTradeStatus(id: number, status: number) {
     return await this.prisma.trade.update({
       where: { id },
       data: { status: status },
@@ -124,37 +125,34 @@ export class TradeRepository {
 
   // -------------------------------
 
-  async findTradeHistoryByTradeId(tradeId: string) {
+  async findTradeHistoryByTradeId(tradeId: number) {
     return await this.prisma.tradeHistory.findFirst({
       where: { tradeId, deletedAt: null },
     });
   }
 
-  async createTradeHistory(tradeId: string, data: CreateTradeHistoryDto) {
+  async createTradeHistory(tradeId: number, data: CreateTradeHistoryDto) {
     return await this.prisma.tradeHistory.create({
       data: { ...data, tradeId },
     });
   }
 
-  async updateTradeHistoryStatus(
-    id: string,
-    status: TradeHistoryStatus,
-    txHash?: string
-  ) {
+  async updateTradeHistoryStatus(id: number, status: number, txHash?: string) {
     const updateData: any = { status };
 
-    if (status === "TOKEN_DEPOSITED") {
+    if (status === TradeHistoryStatus.TOKEN_DEPOSITED) {
       updateData.tokenDepositedAt = new Date();
       updateData.sellerTxHash = txHash;
     }
-    if (status === "PAYMENT_CONFIRMED")
+    if (status === TradeHistoryStatus.PAYMENT_CONFIRMED)
       updateData.paymentConfirmedAt = new Date();
-    if (status === "COMPLETED") {
+    if (status === TradeHistoryStatus.COMPLETED) {
       updateData.completedAt = new Date();
       updateData.contractTxHash = txHash;
     }
-    if (status === "CANCELLED") updateData.cancelledAt = new Date();
-    if (status === "FAILED") updateData.failedAt = new Date();
+    if (status === TradeHistoryStatus.CANCELLED)
+      updateData.cancelledAt = new Date();
+    if (status === TradeHistoryStatus.FAILED) updateData.failedAt = new Date();
 
     return await this.prisma.tradeHistory.update({
       where: { id },
@@ -164,7 +162,7 @@ export class TradeRepository {
 
   // -------------------------------
 
-  async createPriceHistory(tradeId: string, data: CreatePriceHistoryDto) {
+  async createPriceHistory(tradeId: number, data: CreatePriceHistoryDto) {
     return await this.prisma.priceHistory.create({
       data: { ...data, tradeId },
     });

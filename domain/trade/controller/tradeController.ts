@@ -6,7 +6,6 @@ import {
 import { HttpError } from "@/common/error/errors";
 import { CreateTradeDto } from "../dto/createTradeDto";
 import { FindTradeDto } from "../dto/findTradeDto";
-import { RequestTradeDto } from "../dto/requestTradeDto";
 
 export class TradeController {
   constructor(private readonly tradeService: TradeService) {}
@@ -46,7 +45,7 @@ export class TradeController {
     try {
       const { id } = req.params;
 
-      const trade = await this.tradeService.findTradeById(id);
+      const trade = await this.tradeService.findTradeById(Number(id));
       return res.status(200).json(trade);
     } catch (error) {
       if (error instanceof HttpError) {
@@ -78,7 +77,7 @@ export class TradeController {
       const user = req.user;
       const { id } = req.params;
 
-      const result = await this.tradeService.deleteTrade(user, id);
+      const result = await this.tradeService.deleteTrade(user, Number(id));
       return res.status(200).json(result);
     } catch (error) {
       if (error instanceof HttpError) {
@@ -95,9 +94,13 @@ export class TradeController {
     try {
       const user = req.user;
       const { id } = req.params;
-      const request: RequestTradeDto = req.body;
+      const request = req.body;
 
-      const result = await this.tradeService.requestTrade(user, id, request);
+      const result = await this.tradeService.requestTrade(
+        user,
+        Number(id),
+        request
+      );
       return res.status(200).json(result);
     } catch (error) {
       if (error instanceof HttpError) {
@@ -114,7 +117,11 @@ export class TradeController {
       const { id } = req.params;
       const request = req.body;
 
-      const result = await this.tradeService.despositToken(user, id, request);
+      const result = await this.tradeService.depositToken(
+        user,
+        Number(id),
+        request
+      );
       return res.status(200).json(result);
     } catch (error) {
       if (error instanceof HttpError) {
@@ -131,7 +138,11 @@ export class TradeController {
       const { id } = req.params;
       const request = req.body;
 
-      const result = await this.tradeService.confirmPayment(user, id, request);
+      const result = await this.tradeService.confirmPayment(
+        user,
+        Number(id),
+        request
+      );
       return res.status(200).json(result);
     } catch (error) {
       if (error instanceof HttpError) {
@@ -148,7 +159,11 @@ export class TradeController {
       const { id } = req.params;
       const request = req.body;
 
-      const result = await this.tradeService.completeTrade(user, id, request);
+      const result = await this.tradeService.completeTrade(
+        user,
+        Number(id),
+        request
+      );
       return res.status(200).json(result);
     } catch (error) {
       if (error instanceof HttpError) {
