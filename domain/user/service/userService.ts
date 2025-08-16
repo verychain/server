@@ -77,7 +77,8 @@ export class UserService {
     const dto = plainToInstance(CreateUserDto, body);
     dto.password = dto.password ? await bcrypt.hash(dto.password, 10) : user.password; // Do not change password if not provided
     const errors = await validate(dto);
-    if (errors.length > 0) {
+    const isValidNationCode = dto.nation in nationCodeMap;
+    if (errors.length > 0 || !isValidNationCode) {
       console.log("[updateProfile@UserService] Validation errors:", errors);
       throw new HttpError("Invalid inputs", 400);
     }
