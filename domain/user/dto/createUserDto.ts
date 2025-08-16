@@ -12,7 +12,7 @@ export class CreateUserDto {
   nickname: string;
 
   @IsString()
-  nation: string;
+  nation: number;
 
   @IsString()
   phone: string;
