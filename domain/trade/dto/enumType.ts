@@ -32,6 +32,8 @@ export enum SortOrder {
 export enum TradeSortField {
   CREATED_AT = "createdAt",
   PRICE = "price",
-  MIN_AMOUNT = "minAmount",
-  MAX_AMOUNT = "maxAmount",
+  USER_GRADE = "user.grade",
+  TRADE_VOLUME = "tradeVolume",
+  // MIN_AMOUNT = "minAmount",
+  // MAX_AMOUNT = "maxAmount",
 }

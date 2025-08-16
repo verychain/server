@@ -13,9 +13,28 @@ export class TradeRepository {
   }
 
   async findTradeById(id: number) {
+    const include: any = {
+      user: {
+        select: {
+          id: true,
+          nickname: true,
+          grade: true,
+
+          buyerTrades: {
+            where: { deletedAt: null },
+            select: { id: true, status: true },
+          },
+          sellerTrades: {
+            where: { deletedAt: null },
+            select: { id: true, status: true },
+          },
+        },
+      },
+    };
+
     return await this.prisma.trade.findUnique({
       where: { id, deletedAt: null },
-      include: { user: true },
+      include,
     });
   }
 
@@ -73,20 +92,54 @@ export class TradeRepository {
 
     // include 옵션
     const include: any = {};
-    if (includeUser) include.user = true;
+    if (includeUser)
+      include.user = {
+        select: {
+          id: true,
+          nickname: true,
+          grade: true,
+
+          buyerTrades: {
+            where: { deletedAt: null },
+            select: { id: true, status: true },
+          },
+          sellerTrades: {
+            where: { deletedAt: null },
+            select: { id: true, status: true },
+          },
+        },
+      };
     if (includeHistory) include.history = true;
+
+    // 정렬 로직
+    let orderBy: any;
+    if (sortBy === "user.grade") {
+      orderBy = { user: { grade: sortOrder } };
+    } else if (sortBy === "tradeVolume") {
+      orderBy = [{ price: sortOrder }, { maxAmount: sortOrder }];
+    } else {
+      orderBy = { [sortBy]: sortOrder };
+    }
 
     // 쿼리 실행
     const [trades, total] = await Promise.all([
       this.prisma.trade.findMany({
         where,
         include,
-        orderBy: { [sortBy]: sortOrder },
+        orderBy,
         skip,
         take: limit,
       }),
       this.prisma.trade.count({ where }),
     ]);
+
+    if (sortBy === "tradeVolume") {
+      trades.sort((a, b) => {
+        const volumeA = Number(a.price) * Number(a.maxAmount);
+        const volumeB = Number(b.price) * Number(b.maxAmount);
+        return sortOrder === "asc" ? volumeA - volumeB : volumeB - volumeA;
+      });
+    }
 
     return {
       trades,
