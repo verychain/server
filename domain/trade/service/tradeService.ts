@@ -6,6 +6,7 @@ import {
 import { CreateTradeDto } from "../dto/createTradeDto";
 import { FindTradeDto } from "../dto/findTradeDto";
 import { User } from "@prisma/client";
+import { TradeType, TradeStatus, TradeHistoryStatus } from "../dto/enumType";
 
 export class TradeService {
   constructor(private readonly tradeRepository: TradeRepository) {}
@@ -45,7 +46,7 @@ export class TradeService {
     }
   }
 
-  async findTradeById(id: string) {
+  async findTradeById(id: number) {
     try {
       const trade = await this.tradeRepository.findTradeById(id);
       if (!trade) {
@@ -77,7 +78,7 @@ export class TradeService {
     }
   }
 
-  async deleteTrade(user: User, tradeId: string) {
+  async deleteTrade(user: User, tradeId: number) {
     try {
       const trade = await this.tradeRepository.findTradeById(tradeId);
       if (!trade) {
@@ -104,7 +105,7 @@ export class TradeService {
 
   // -------------------------------
 
-  async requestTrade(user: User, tradeId: string, request: any) {
+  async requestTrade(user: User, tradeId: number, request: any) {
     try {
       // 1. 거래 존재 확인
       const trade = await this.tradeRepository.findTradeById(tradeId);
@@ -115,15 +116,15 @@ export class TradeService {
         throw new HttpError("Cannot request your own trade", 400);
 
       // 3. 거래 상태
-      if (trade.status !== "ACTIVE")
+      if (trade.status !== TradeStatus.ACTIVE)
         throw new HttpError("Trade is not available", 400);
 
       // 4. TradeHistory 생성
       const tradeHistory = await this.tradeRepository.createTradeHistory(
         tradeId,
         {
-          buyerId: trade.type === "BUY" ? trade.userId : user.id,
-          sellerId: trade.type === "BUY" ? user.id : trade.userId,
+          buyerId: trade.type === TradeType.BUY ? trade.userId : user.id,
+          sellerId: trade.type === TradeType.BUY ? user.id : trade.userId,
           fixedAmount: request.amount,
           totalPrice: request.amount * Number(trade.price),
           fee: request.fee,
@@ -131,7 +132,10 @@ export class TradeService {
       );
 
       // 5. Trade 상태를 PENDING 으로 변경
-      await this.tradeRepository.updateTradeStatus(tradeId, "PENDING");
+      await this.tradeRepository.updateTradeStatus(
+        tradeId,
+        TradeStatus.PENDING
+      );
 
       return tradeHistory;
     } catch (error) {
@@ -143,7 +147,7 @@ export class TradeService {
     }
   }
 
-  async depositToken(user: User, tradeId: string, request: any) {
+  async depositToken(user: User, tradeId: number, request: any) {
     try {
       // 1. 거래 존재 확인
       const trade = await this.tradeRepository.findTradeById(tradeId);
@@ -161,14 +165,15 @@ export class TradeService {
       }
 
       // 4. 현재 상태 확인
-      if (tradeHistory.status !== "INITIATED") {
+      if (tradeHistory.status !== TradeHistoryStatus.INITIATED) {
         throw new HttpError("Invalid trade status", 400);
       }
 
       // 5. 블록체인 이벤트 조회
       const isValidDeposit = await this.verifyTokenDeposit(
         request.txHash,
-        Number(tradeHistory.fixedAmount)
+        Number(tradeHistory.fixedAmount),
+        Number(tradeHistory.fee)
       );
 
       if (!isValidDeposit) {
@@ -179,7 +184,7 @@ export class TradeService {
       const updatedTradeHistory =
         await this.tradeRepository.updateTradeHistoryStatus(
           tradeHistory.id,
-          "TOKEN_DEPOSITED",
+          TradeHistoryStatus.TOKEN_DEPOSITED,
           request.txHash
         );
 
@@ -195,13 +200,17 @@ export class TradeService {
 
   private async verifyTokenDeposit(
     txHash: string,
-    amount: number
+    fixedAmount: number,
+    fee: number
   ): Promise<boolean> {
-    // TODO: 비교해서 결과값 반환
-    return true;
+    let receivedAmount: number = 0; // TODO : event 에서 받아올 수량
+    let isVerified =
+      fixedAmount <= receivedAmount &&
+      receivedAmount >= fixedAmount + fixedAmount * fee;
+    return isVerified;
   }
 
-  async confirmPayment(user: User, tradeId: string, request: any) {
+  async confirmPayment(user: User, tradeId: number, request: any) {
     try {
       // 1. 거래 존재 확인
       const trade = await this.tradeRepository.findTradeById(tradeId);
@@ -219,7 +228,7 @@ export class TradeService {
       }
 
       // 4. 현재 상태 확인
-      if (tradeHistory.status !== "TOKEN_DEPOSITED") {
+      if (tradeHistory.status !== TradeHistoryStatus.TOKEN_DEPOSITED) {
         throw new HttpError("Invalid trade status", 400);
       }
 
@@ -227,7 +236,7 @@ export class TradeService {
       const updatedTradeHistory =
         await this.tradeRepository.updateTradeHistoryStatus(
           tradeHistory.id,
-          "PAYMENT_CONFIRMED"
+          TradeHistoryStatus.PAYMENT_CONFIRMED
         );
 
       return updatedTradeHistory;
@@ -240,7 +249,7 @@ export class TradeService {
     }
   }
 
-  async completeTrade(user: User, tradeId: string, request: any) {
+  async completeTrade(user: User, tradeId: number, request: any) {
     try {
       // 1. 거래 존재 확인
       const trade = await this.tradeRepository.findTradeById(tradeId);
@@ -258,7 +267,7 @@ export class TradeService {
       }
 
       // 4. 현재 상태 확인
-      if (tradeHistory.status !== "PAYMENT_CONFIRMED") {
+      if (tradeHistory.status !== TradeHistoryStatus.PAYMENT_CONFIRMED) {
         throw new HttpError("Invalid trade status", 400);
       }
 
@@ -270,7 +279,7 @@ export class TradeService {
       const updatedTradeHistory =
         await this.tradeRepository.updateTradeHistoryStatus(
           tradeHistory.id,
-          "COMPLETED",
+          TradeHistoryStatus.COMPLETED,
           txHash
         );
 

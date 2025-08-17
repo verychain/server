@@ -9,40 +9,17 @@ import {
   IsArray,
 } from "class-validator";
 import { Transform, Type } from "class-transformer";
-
-export enum TradeType {
-  BUY = "BUY",
-  SELL = "SELL",
-}
-
-export enum TradeStatus {
-  ACTIVE = "ACTIVE",
-  PENDING = "PENDING",
-  COMPLETED = "COMPLETED",
-  CANCELLED = "CANCELLED",
-  EXPIRED = "EXPIRED",
-}
-
-export enum SortOrder {
-  ASC = "asc",
-  DESC = "desc",
-}
-
-export enum TradeSortField {
-  CREATED_AT = "createdAt",
-  PRICE = "price",
-  MIN_AMOUNT = "minAmount",
-  MAX_AMOUNT = "maxAmount",
-}
+import { SortOrder, TradeSortField } from "./enumType";
 
 export class FindTradeDto {
   // ========================================================
   // 필터링 옵션들
   // ========================================================
 
-  @IsEnum(TradeType)
+  // @IsEnum(TradeType)
+  @IsNumber()
   @IsOptional()
-  type?: TradeType[];
+  type?: number[];
 
   @IsString()
   @IsOptional()
@@ -70,13 +47,14 @@ export class FindTradeDto {
   @Type(() => Number)
   priceMax?: number;
 
-  @IsEnum(TradeStatus)
+  // @IsEnum(TradeStatus)
+  @IsNumber()
   @IsOptional()
-  status?: TradeStatus[];
+  status?: number[];
 
   @IsString()
   @IsOptional()
-  userId?: string;
+  userId?: number;
 
   // ========================================================
   // 페이지네이션

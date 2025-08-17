@@ -1,11 +1,11 @@
 import { IsString, IsNumber, IsOptional, Min } from "class-validator";
 
 export class CreateTradeHistoryDto {
-  @IsString()
-  buyerId: string;
+  @IsNumber()
+  buyerId: number;
 
-  @IsString()
-  sellerId: string;
+  @IsNumber()
+  sellerId: number;
 
   @IsNumber()
   @Min(0)

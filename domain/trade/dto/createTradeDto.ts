@@ -5,21 +5,12 @@ import {
   IsOptional,
   IsDateString,
   Min,
-  Max,
 } from "class-validator";
 
-export enum TradeType {
-  BUY = "BUY",
-  SELL = "SELL",
-}
-
-export enum TradeOption {
-  BANK_TRANSFER = "BANK_TRANSFER",
-}
-
 export class CreateTradeDto {
-  @IsEnum(TradeType)
-  type: TradeType;
+  // @IsEnum(TradeType)
+  @IsNumber()
+  type: number;
 
   @IsString()
   baseSymbol: string;
@@ -39,9 +30,10 @@ export class CreateTradeDto {
   @Min(0)
   price: number;
 
-  @IsEnum(TradeOption)
+  // @IsEnum(TradeOption)
+  @IsNumber()
   @IsOptional()
-  option?: TradeOption = TradeOption.BANK_TRANSFER;
+  option?: number = 0;
 
   @IsDateString()
   @IsOptional()

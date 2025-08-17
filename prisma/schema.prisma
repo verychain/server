@@ -29,14 +29,14 @@ enum Grade {
 }
 
 model User {
-  id            String      @id @default(cuid())
+  id            Int         @id @default(autoincrement())
   username      String      @unique                // 이메일
   password      String                             // 비밀번호
   nickname      String      @unique                // 닉네임
   nation        String                             // 국가
   phone         String      @unique                // 전화번호
-  grade         Grade       @default(BRONZE)       // 멤버십 등급
-  role          Role        @default(USER)
+  grade         Int         @default(0)            // 멤버십 등급
+  role          Int         @default(1)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   deletedAt     DateTime?
@@ -56,8 +56,8 @@ model User {
 }
 
 model Kyc {
-  id          String   @id @default(cuid())
-  userId      String   @unique
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
   realName    String                          // 실명
   bankName    String                          // 은행
   account     String                          // 계좌 번호
@@ -71,8 +71,8 @@ model Kyc {
 }
 
 model Wallet {
-  id        String   @id @default(cuid())
-  userId    String   @unique
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
   address   String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -90,12 +90,12 @@ enum PointReason {
 }
 
 model Point {
-  id        String   @id @default(cuid())
-  userId    String
-  amount    Int      // 양수: 적립, 음수: 사용 or 차감
-  reason    PointReason
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        Int         @id @default(autoincrement())
+  userId    Int
+  amount    Int         // 양수: 적립, 음수: 사용 or 차감
+  reason    Int
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
   deletedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -104,8 +104,8 @@ model Point {
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
+  id        Int      @id @default(autoincrement())
+  userId    Int
   process   Boolean  @default(false)
   message   String
   createdAt DateTime @default(now())
@@ -137,18 +137,18 @@ enum TradeOption {
 }
 
 model Trade {
-  id            String        @id @default(cuid())
-  userId        String    
-  type          TradeType
+  id            Int           @id @default(autoincrement())
+  userId        Int    
+  type          Int
 
   baseSymbol    String        // 기준 통화 (ex. VERY)
   quoteSymbol   String        // 쿼트 통화 (ex. KRW, USDT)
   minAmount     Decimal       @db.Decimal(18, 8)
   maxAmount     Decimal       @db.Decimal(18, 8)
   price         Decimal       @db.Decimal(18, 8)  // 1개당 가격
-  option        TradeOption   @default(BANK_TRANSFER)      
+  option        Int           @default(0)      
 
-  status        TradeStatus   @default(ACTIVE)
+  status        Int           @default(0)
   expiresAt     DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -172,15 +172,15 @@ enum TradeHistoryStatus {
 }
 
 model TradeHistory {
-  id                  String              @id @default(cuid())
-  tradeId             String
-  buyerId             String
-  sellerId            String
-  status              TradeHistoryStatus  @default(INITIATED)
+  id                  Int                 @id @default(autoincrement())
+  tradeId             Int
+  buyerId             Int
+  sellerId            Int
+  status              Int                 @default(0)
 
   fixedAmount         Decimal             @db.Decimal(18, 8)    // 최종 수량
   totalPrice          Decimal             @db.Decimal(18, 8)    // 최종 총 가격
-  fee                 Decimal             @db.Decimal(18, 8)    // 플랫폼에 지불할 수수료
+  fee                 Decimal             @db.Decimal(18, 8)    // 플랫폼에 지불할 수수료 (%)
 
   tokenDepositedAt    DateTime?           // 토큰 예치 완료 시간
   paymentConfirmedAt  DateTime?           // 원화 입금 완료 시간
@@ -202,8 +202,8 @@ model TradeHistory {
 }
 
 model PriceHistory {
-  id            String    @id @default(cuid())
-  tradeId       String
+  id            Int       @id @default(autoincrement())
+  tradeId       Int
   baseSymbol    String
   quoteSymbol   String
   price         Decimal   @db.Decimal(18, 8)
@@ -216,9 +216,9 @@ model PriceHistory {
 }
 
 model LikeUser {
-  id            String    @id @default(cuid())
-  fromUserId    String
-  toUserId      String
+  id            Int         @id @default(autoincrement())
+  fromUserId    Int
+  toUserId      Int
 
   fromUser User @relation("FromUserLikes", fields: [fromUserId], references: [id], onDelete: Cascade)
   toUser   User @relation("ToUserLikes", fields: [toUserId], references: [id], onDelete: Cascade)
@@ -229,9 +229,9 @@ model LikeUser {
 }
 
 model CustomerService {
-  id            String    @id @default(cuid())
-  userId        String 
-  tradeId       String
+  id            Int       @id @default(autoincrement())
+  userId        Int 
+  tradeId       Int
   content       String    // 문의 내용
   process       Boolean   @default(true)  // 진행 중 (true), 완료 (false)
   createdAt     DateTime  @default(now())
