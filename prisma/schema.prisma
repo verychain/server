@@ -33,7 +33,7 @@ model User {
   username      String      @unique                // 이메일
   password      String                             // 비밀번호
   nickname      String      @unique                // 닉네임
-  nation        String                             // 국가
+  nation        Int                                // ISO 3166 Numeric Code 저장
   phone         String      @unique                // 전화번호
   grade         Int         @default(0)            // 멤버십 등급
   role          Int         @default(1)
@@ -165,8 +165,9 @@ model Trade {
 enum TradeHistoryStatus {
   INITIATED         // 거래 세션 시작
   TOKEN_DEPOSITED   // 토큰 예치 완료 (판매자가 변경)
-  PAYMENT_CONFIRMED // 원화 입금 완료 (구매자가 변경)
-  COMPLETED         // 거래 완료 (판매자가 변경)
+  PAYMENT_SENT      // 원화 입금 완료 (구매자가 변경)
+  PAYMENT_CONFIRMED // 원화 입금 확인 (판매자가 변경)
+  COMPLETED         // 거래 완료
   CANCELLED         // 거래 취소
   FAILED            // 거래 실패 (= 이의 제기)
 }
@@ -182,14 +183,15 @@ model TradeHistory {
   totalPrice          Decimal             @db.Decimal(18, 8)    // 최종 총 가격
   fee                 Decimal             @db.Decimal(18, 8)    // 플랫폼에 지불할 수수료 (%)
 
+  initiatedAt         DateTime            // 거래 세션 시작 시간
   tokenDepositedAt    DateTime?           // 토큰 예치 완료 시간
-  paymentConfirmedAt  DateTime?           // 원화 입금 완료 시간
+  paymentSentAt       DateTime?           // 원화 입금 완료 시간
+  paymentConfirmedAt  DateTime?           // 원화 입금 확인 시간
   completedAt         DateTime?           // 거래 완료 시간
   failedAt            DateTime?           // 거래 실패 시간
   cancelledAt         DateTime?           // 거래 취소 시간
   
-  sellerTxHash        String?             // 트랜잭션 해시 (판매자 -> 컨트랙트)
-  contractTxHash      String?             // 트랜잭션 해시 (컨트랙트 -> 구매자)
+  txHash              String?             // 트랜잭션 해시
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   deletedAt           DateTime?

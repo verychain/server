@@ -6,6 +6,7 @@ import { validate } from "class-validator";
 import { CreateUserDto } from "../dto/createUserDto";
 import { userRepository, UserRepository } from "../repository/userRepository";
 import { generateJWT } from "@/common/utils/jwtUtils";
+import { nationCodeMap } from "@/common/model/types/nationCode";
 
 export class UserService {
   constructor(private readonly userRepository: UserRepository) {}
@@ -14,11 +15,13 @@ export class UserService {
     // 1. input validation
     const dto = plainToInstance(CreateUserDto, body);
     dto.password = await bcrypt.hash(dto.password, 10);
+    const isValidNationCode = dto.nation in nationCodeMap;
     const errors = await validate(dto);
-    if (errors.length > 0) {
+    if (errors.length > 0 || !isValidNationCode) {
       console.log("[signup@UserService] Validation errors:", errors);
       throw new HttpError("Invalid inputs", 400);
     }
+
 
     // 2. duplication check
     const isConflict =
@@ -74,7 +77,8 @@ export class UserService {
     const dto = plainToInstance(CreateUserDto, body);
     dto.password = dto.password ? await bcrypt.hash(dto.password, 10) : user.password; // Do not change password if not provided
     const errors = await validate(dto);
-    if (errors.length > 0) {
+    const isValidNationCode = dto.nation in nationCodeMap;
+    if (errors.length > 0 || !isValidNationCode) {
       console.log("[updateProfile@UserService] Validation errors:", errors);
       throw new HttpError("Invalid inputs", 400);
     }
