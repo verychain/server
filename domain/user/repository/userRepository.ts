@@ -9,7 +9,7 @@ export class UserRepository {
     this.prisma = new PrismaClient();
   }
 
-  async findUserById(id: string) {
+  async findUserById(id: number) {
     return await this.prisma.user.findUnique({
       where: { id },
     });
@@ -39,14 +39,14 @@ export class UserRepository {
     });
   }
 
-  async updateUser(id: string, userData: UpdateUserDto) {
+  async updateUser(id: number, userData: UpdateUserDto) {
     return await this.prisma.user.update({
       where: { id },
       data: userData,
     });
   }
 
-  async deleteUser(id: string) {
+  async deleteUser(id: number) {
     // not delete row, just update deletedAt
     // return await this.prisma.user.delete({
     //   where: { id },
@@ -55,6 +55,29 @@ export class UserRepository {
     return await this.prisma.user.update({
       where: { id },
       data: { deletedAt: new Date() }, // Soft delete
+    });
+  }
+
+  async upsertWallet(userId: number, address: string) {
+    return await this.prisma.wallet.upsert({
+      where: { userId },
+      update: { address },
+      create: {
+        userId,
+        address,
+      },
+    });
+  }
+
+  async findWalletByUserId(userId: number) {
+    return await this.prisma.wallet.findUnique({
+      where: { userId },
+    });
+  }
+
+  async findWalletByAddress(address: string) {
+    return await this.prisma.wallet.findUnique({
+      where: { address },
     });
   }
 }

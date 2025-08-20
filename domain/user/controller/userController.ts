@@ -90,6 +90,18 @@ export class UserController {
     }
   }
 
+  async saveWallet(req: Request, res: Response): Promise<Response> {
+    try {
+      await this.userService.saveWallet(req.user, req.body);
+      return res.status(200).json({ message: "Wallet saved successfully" });  
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.statusCode).json({ message: error.message });
+      }
+      console.error("[saveWallet@UserController] Error:", error);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
 }
 
 // ========================================================
