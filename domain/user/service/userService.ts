@@ -67,7 +67,7 @@ export class UserService {
     }
 
     // 3. generate JWT token
-    const token = generateJWT(user.username, user.role);
+    const token = generateJWT(user.username, user.role );
     
     return token;
   }

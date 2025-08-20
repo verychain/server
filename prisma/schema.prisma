@@ -29,14 +29,14 @@ enum Grade {
 }
 
 model User {
-  id            Int         @id @default(autoincrement())
+  id Int @id @default(autoincrement())
   username      String      @unique                // 이메일
   password      String                             // 비밀번호
   nickname      String      @unique                // 닉네임
-  nation        Int                                // ISO 3166 Numeric Code 저장
+  nation        Int                             // 국가
   phone         String      @unique                // 전화번호
-  grade         Int         @default(0)            // 멤버십 등급
-  role          Int         @default(1)
+  grade         Grade       @default(BRONZE)       // 멤버십 등급
+  role          Role        @default(USER)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   deletedAt     DateTime?
@@ -56,8 +56,8 @@ model User {
 }
 
 model Kyc {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @unique
+  id Int @id @default(autoincrement())
+  userId      Int   @unique
   realName    String                          // 실명
   bankName    String                          // 은행
   account     String                          // 계좌 번호
@@ -71,8 +71,8 @@ model Kyc {
 }
 
 model Wallet {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique
+  id Int @id @default(autoincrement())
+  userId    Int   @unique
   address   String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -90,12 +90,12 @@ enum PointReason {
 }
 
 model Point {
-  id        Int         @id @default(autoincrement())
+  id Int @id @default(autoincrement())
   userId    Int
-  amount    Int         // 양수: 적립, 음수: 사용 or 차감
-  reason    Int
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  amount    Int      // 양수: 적립, 음수: 사용 or 차감
+  reason    PointReason
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   deletedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -104,7 +104,7 @@ model Point {
 }
 
 model Notification {
-  id        Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
   userId    Int
   process   Boolean  @default(false)
   message   String
@@ -137,7 +137,7 @@ enum TradeOption {
 }
 
 model Trade {
-  id            Int           @id @default(autoincrement())
+  id Int @id @default(autoincrement())
   userId        Int    
   type          Int
 
@@ -146,9 +146,9 @@ model Trade {
   minAmount     Decimal       @db.Decimal(18, 8)
   maxAmount     Decimal       @db.Decimal(18, 8)
   price         Decimal       @db.Decimal(18, 8)  // 1개당 가격
-  option        Int           @default(0)      
+  option        Int?
 
-  status        Int           @default(0)
+  status        Int @default(0)
   expiresAt     DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -165,33 +165,31 @@ model Trade {
 enum TradeHistoryStatus {
   INITIATED         // 거래 세션 시작
   TOKEN_DEPOSITED   // 토큰 예치 완료 (판매자가 변경)
-  PAYMENT_SENT      // 원화 입금 완료 (구매자가 변경)
-  PAYMENT_CONFIRMED // 원화 입금 확인 (판매자가 변경)
-  COMPLETED         // 거래 완료
+  PAYMENT_CONFIRMED // 원화 입금 완료 (구매자가 변경)
+  COMPLETED         // 거래 완료 (판매자가 변경)
   CANCELLED         // 거래 취소
   FAILED            // 거래 실패 (= 이의 제기)
 }
 
 model TradeHistory {
-  id                  Int                 @id @default(autoincrement())
+  id Int @id @default(autoincrement())
   tradeId             Int
   buyerId             Int
   sellerId            Int
-  status              Int                 @default(0)
+  status              Int @default(0)
 
   fixedAmount         Decimal             @db.Decimal(18, 8)    // 최종 수량
   totalPrice          Decimal             @db.Decimal(18, 8)    // 최종 총 가격
-  fee                 Decimal             @db.Decimal(18, 8)    // 플랫폼에 지불할 수수료 (%)
+  fee                 Decimal             @db.Decimal(18, 8)    // 플랫폼에 지불할 수수료
 
-  initiatedAt         DateTime            // 거래 세션 시작 시간
   tokenDepositedAt    DateTime?           // 토큰 예치 완료 시간
-  paymentSentAt       DateTime?           // 원화 입금 완료 시간
-  paymentConfirmedAt  DateTime?           // 원화 입금 확인 시간
+  paymentConfirmedAt  DateTime?           // 원화 입금 완료 시간
   completedAt         DateTime?           // 거래 완료 시간
   failedAt            DateTime?           // 거래 실패 시간
   cancelledAt         DateTime?           // 거래 취소 시간
   
-  txHash              String?             // 트랜잭션 해시
+  sellerTxHash        String?             // 트랜잭션 해시 (판매자 -> 컨트랙트)
+  contractTxHash      String?             // 트랜잭션 해시 (컨트랙트 -> 구매자)
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
   deletedAt           DateTime?
@@ -204,7 +202,7 @@ model TradeHistory {
 }
 
 model PriceHistory {
-  id            Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
   tradeId       Int
   baseSymbol    String
   quoteSymbol   String
@@ -218,7 +216,7 @@ model PriceHistory {
 }
 
 model LikeUser {
-  id            Int         @id @default(autoincrement())
+  id Int @id @default(autoincrement())
   fromUserId    Int
   toUserId      Int
 
@@ -231,7 +229,7 @@ model LikeUser {
 }
 
 model CustomerService {
-  id            Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
   userId        Int 
   tradeId       Int
   content       String    // 문의 내용

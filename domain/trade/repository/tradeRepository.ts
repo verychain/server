@@ -156,7 +156,7 @@ export class TradeRepository {
 
   async createTrade(userId: number, data: CreateTradeDto) {
     return await this.prisma.trade.create({
-      data: { ...data, userId },
+      data: { ...data, userId, option: data.option ?? 0 },
       include: { user: true },
     });
   }
