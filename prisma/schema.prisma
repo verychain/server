@@ -134,6 +134,11 @@ enum TradeStatus {
 
 enum TradeOption {
   BANK_TRANSFER   // 계좌이체
+  KAKAO_PAY       // 카카오페이
+  TOSS            // 토스
+  NAVER_PAY       // 네이버페이
+  REMITLY         // Remitly
+  PAYSEND         // Paysend
 }
 
 model Trade {

@@ -5,6 +5,11 @@ export enum TradeType {
 
 export enum TradeOption {
   BANK_TRANSFER = 0,
+  KAKAO_PAY = 1,
+  TOSS = 2,
+  NAVER_PAY = 3,
+  REMITLY = 4,
+  PAYSEND = 5,
 }
 
 export enum TradeStatus {
