@@ -58,7 +58,7 @@ export class UserRepository {
     });
   }
 
-  async upsertWallet(userId: string, address: string) {
+  async upsertWallet(userId: number, address: string) {
     return await this.prisma.wallet.upsert({
       where: { userId },
       update: { address },
@@ -69,7 +69,7 @@ export class UserRepository {
     });
   }
 
-  async findWalletByUserId(userId: string) {
+  async findWalletByUserId(userId: number) {
     return await this.prisma.wallet.findUnique({
       where: { userId },
     });
