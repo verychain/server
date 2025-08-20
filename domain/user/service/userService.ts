@@ -113,6 +113,40 @@ export class UserService {
     }
     return deletedUser;
   }
+
+  async saveWallet(user: any, body:{ address: string}) {
+    if (!body?.address) {
+      throw new HttpError("Wallet address is required", 400);
+    }
+    // 1. Check if user exists
+    if (!user || !user.id) {
+      throw new HttpError("User not found", 404);
+    }
+    // 2. Check if address is valid (basic check, can be extended)
+    if (typeof body.address !== "string" || body.address.trim() === "") {
+      throw new HttpError("Invalid wallet address", 400);
+    }
+    // 3. Check if user already has a wallet
+    const existingWallet = await this.userRepository.findWalletByUserId(user.id);
+    if (existingWallet) {
+      // If wallet exists, update it
+      throw new HttpError("Wallet already saved", 500);
+    }
+    // 4. Check if address is already used by another user
+    const walletByAddress = await this.userRepository.findWalletByAddress(body.address);
+    if (walletByAddress && walletByAddress.userId !== user.id) {
+      throw new HttpError("Wallet address already used by another user", 409);
+    }
+    
+
+    // 지갑 저장 (있으면 업데이트, 없으면 생성)
+    const wallet = await this.userRepository.upsertWallet(user.id, body.address);
+    if (!wallet) {
+      throw new HttpError("Failed to save wallet", 500);
+    }
+
+    return wallet;
+  }
 }
 
 // ========================================================

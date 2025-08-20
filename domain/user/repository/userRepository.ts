@@ -57,6 +57,29 @@ export class UserRepository {
       data: { deletedAt: new Date() }, // Soft delete
     });
   }
+
+  async upsertWallet(userId: string, address: string) {
+    return await this.prisma.wallet.upsert({
+      where: { userId },
+      update: { address },
+      create: {
+        userId,
+        address,
+      },
+    });
+  }
+
+  async findWalletByUserId(userId: string) {
+    return await this.prisma.wallet.findUnique({
+      where: { userId },
+    });
+  }
+
+  async findWalletByAddress(address: string) {
+    return await this.prisma.wallet.findUnique({
+      where: { address },
+    });
+  }
 }
 
 // ========================================================
