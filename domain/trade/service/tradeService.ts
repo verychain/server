@@ -1,5 +1,9 @@
 import { HttpError } from "@/common/error/errors";
 import {
+  ChainService,
+  chainService,
+} from "@/domain/chain/service/chainService";
+import {
   TradeRepository,
   tradeRepository,
 } from "../repository/tradeRepository";
@@ -9,7 +13,10 @@ import { User } from "@prisma/client";
 import { TradeType, TradeStatus, TradeHistoryStatus } from "../dto/enumType";
 
 export class TradeService {
-  constructor(private readonly tradeRepository: TradeRepository) {}
+  constructor(
+    private readonly tradeRepository: TradeRepository,
+    private readonly chainService: ChainService
+  ) {}
 
   async createTrade(user: User, createTradeDto: CreateTradeDto) {
     try {
@@ -170,7 +177,7 @@ export class TradeService {
       }
 
       // 5. 블록체인 이벤트 조회
-      const isValidDeposit = await this.verifyTokenDeposit(
+      const isValidDeposit = await this.chainService.verifyTokenDeposit(
         request.txHash,
         Number(tradeHistory.fixedAmount),
         Number(tradeHistory.fee)
@@ -198,19 +205,7 @@ export class TradeService {
     }
   }
 
-  private async verifyTokenDeposit(
-    txHash: string,
-    fixedAmount: number,
-    fee: number
-  ): Promise<boolean> {
-    let receivedAmount: number = 0; // TODO : event 에서 받아올 수량
-    let isVerified =
-      fixedAmount <= receivedAmount &&
-      receivedAmount >= fixedAmount + fixedAmount * fee;
-    return isVerified;
-  }
-
-  async confirmPayment(user: User, tradeId: number, request: any) {
+  async confirmPayment(user: User, tradeId: number) {
     try {
       // 1. 거래 존재 확인
       const trade = await this.tradeRepository.findTradeById(tradeId);
@@ -249,7 +244,7 @@ export class TradeService {
     }
   }
 
-  async completeTrade(user: User, tradeId: number, request: any) {
+  async completeTrade(user: User, tradeId: number) {
     try {
       // 1. 거래 존재 확인
       const trade = await this.tradeRepository.findTradeById(tradeId);
@@ -273,7 +268,7 @@ export class TradeService {
 
       // 5. 블록체인
       // TODO: 컨트랙트에서 구매자에게 토큰 송금
-      const txHash = "";
+      const txHash = await this.chainService.transferToBuyer();
 
       // 6. TradeHistory 상태 업데이트
       const updatedTradeHistory =
@@ -300,6 +295,58 @@ export class TradeService {
       throw new HttpError("Failed to delete trade", 500);
     }
   }
+
+  async cancelTrade(user: User, tradeId: number) {
+    try {
+      // 1. 거래 존재 확인
+      const trade = await this.tradeRepository.findTradeById(tradeId);
+      if (!trade) throw new HttpError("Trade not found", 404);
+
+      // 2. TradeHistory 존재 확인
+      const tradeHistory = await this.tradeRepository.findTradeHistoryByTradeId(
+        tradeId
+      );
+      if (!tradeHistory) throw new HttpError("Trade history not found", 404);
+
+      // 3. 권한 확인 (거래 생성자 또는 참여자만 취소 가능)
+      if (
+        tradeHistory.buyerId !== user.id &&
+        tradeHistory.sellerId !== user.id
+      ) {
+        throw new HttpError("Unauthorized to cancel this trade", 403);
+      }
+
+      // 4. 현재 상태 확인 (원화 입금 전까지만 가능)
+      if (tradeHistory.status >= TradeHistoryStatus.PAYMENT_CONFIRMED) {
+        throw new HttpError("Invalid trade status", 400);
+      }
+
+      // 5. 토큰이 deposit된 상태라면 토큰 반환
+      if (tradeHistory.status >= TradeHistoryStatus.TOKEN_DEPOSITED) {
+        // 판매자의 토큰을 다시 반환
+        await this.chainService.refundToSeller(
+          tradeHistory.sellerId,
+          Number(tradeHistory.fixedAmount),
+          trade.baseSymbol
+        );
+      }
+
+      // 6. TradeHistory 상태 업데이트
+      const updatedTradeHistory =
+        await this.tradeRepository.updateTradeHistoryStatus(
+          tradeHistory.id,
+          TradeHistoryStatus.CANCELLED
+        );
+
+      return updatedTradeHistory;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        throw error;
+      }
+      console.error("[cancelTrade@TradeService] Error:", error);
+      throw new HttpError("Failed to delete trade", 500);
+    }
+  }
 }
 
-export const tradeService = new TradeService(tradeRepository);
+export const tradeService = new TradeService(tradeRepository, chainService);

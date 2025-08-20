@@ -51,5 +51,11 @@ router.post(
   authMiddleware,
   tradeController.completeTrade.bind(tradeController)
 );
+// 거래 취소
+router.post(
+  "/:id/cancel",
+  authMiddleware,
+  tradeController.cancelTrade.bind(tradeController)
+);
 
 export default router;

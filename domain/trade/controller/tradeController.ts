@@ -136,13 +136,8 @@ export class TradeController {
     try {
       const user = req.user;
       const { id } = req.params;
-      const request = req.body;
 
-      const result = await this.tradeService.confirmPayment(
-        user,
-        Number(id),
-        request
-      );
+      const result = await this.tradeService.confirmPayment(user, Number(id));
       return res.status(200).json(result);
     } catch (error) {
       if (error instanceof HttpError) {
@@ -157,13 +152,24 @@ export class TradeController {
     try {
       const user = req.user;
       const { id } = req.params;
-      const request = req.body;
 
-      const result = await this.tradeService.completeTrade(
-        user,
-        Number(id),
-        request
-      );
+      const result = await this.tradeService.completeTrade(user, Number(id));
+      return res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.statusCode).json({ message: error.message });
+      }
+      console.error("[completeTrade@TradeController] Error:", error);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+
+  async cancelTrade(req: Request, res: Response): Promise<Response> {
+    try {
+      const user = req.user;
+      const { id } = req.params;
+
+      const result = await this.tradeService.cancelTrade(user, Number(id));
       return res.status(200).json(result);
     } catch (error) {
       if (error instanceof HttpError) {

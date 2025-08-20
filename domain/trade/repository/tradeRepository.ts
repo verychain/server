@@ -4,12 +4,29 @@ import { CreateTradeDto } from "../dto/createTradeDto";
 import { FindTradeDto } from "../dto/findTradeDto";
 import { CreateTradeHistoryDto } from "../dto/createTradeHistory";
 import { CreatePriceHistoryDto } from "../dto/createPriceHistory";
+import { Buffer } from "buffer";
 
 export class TradeRepository {
   private prisma: PrismaClient;
 
   constructor() {
     this.prisma = new PrismaClient();
+  }
+
+  private encodeId(id: number): string {
+    let encoded = id.toString();
+    for (let i = 0; i < 4; i++) {
+      encoded = Buffer.from(encoded).toString("base64");
+    }
+    return encoded;
+  }
+
+  private decodeId(encodedId: string): number {
+    let decoded = encodedId;
+    for (let i = 0; i < 4; i++) {
+      decoded = Buffer.from(decoded, "base64").toString();
+    }
+    return parseInt(decoded);
   }
 
   async findTradeById(id: number) {
@@ -19,23 +36,24 @@ export class TradeRepository {
           id: true,
           nickname: true,
           grade: true,
-
-          buyerTrades: {
-            where: { deletedAt: null },
-            select: { id: true, status: true },
-          },
-          sellerTrades: {
-            where: { deletedAt: null },
-            select: { id: true, status: true },
-          },
         },
       },
+      history: true,
     };
 
-    return await this.prisma.trade.findUnique({
+    const trade = await this.prisma.trade.findUnique({
       where: { id, deletedAt: null },
       include,
     });
+
+    if (trade) {
+      return {
+        ...trade,
+        id: this.encodeId(trade.id),
+      };
+    }
+
+    return trade;
   }
 
   async findTradesByOptions(findTradeDto: FindTradeDto) {

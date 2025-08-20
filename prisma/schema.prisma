@@ -188,7 +188,6 @@ model TradeHistory {
   totalPrice          Decimal             @db.Decimal(18, 8)    // 최종 총 가격
   fee                 Decimal             @db.Decimal(18, 8)    // 플랫폼에 지불할 수수료 (%)
 
-  initiatedAt         DateTime            // 거래 세션 시작 시간
   tokenDepositedAt    DateTime?           // 토큰 예치 완료 시간
   paymentSentAt       DateTime?           // 원화 입금 완료 시간
   paymentConfirmedAt  DateTime?           // 원화 입금 확인 시간
