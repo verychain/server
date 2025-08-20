@@ -9,7 +9,7 @@ export class UserRepository {
     this.prisma = new PrismaClient();
   }
 
-  async findUserById(id: string) {
+  async findUserById(id: number) {
     return await this.prisma.user.findUnique({
       where: { id },
     });
@@ -39,14 +39,14 @@ export class UserRepository {
     });
   }
 
-  async updateUser(id: string, userData: UpdateUserDto) {
+  async updateUser(id: number, userData: UpdateUserDto) {
     return await this.prisma.user.update({
       where: { id },
       data: userData,
     });
   }
 
-  async deleteUser(id: string) {
+  async deleteUser(id: number) {
     // not delete row, just update deletedAt
     // return await this.prisma.user.delete({
     //   where: { id },
