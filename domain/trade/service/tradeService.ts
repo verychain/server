@@ -116,7 +116,7 @@ export class TradeService {
         throw new HttpError("Cannot request your own trade", 400);
 
       // 3. 거래 상태
-      if (trade.status !== TradeStatus.ACTIVE)
+      if (trade.status !== TradeStatus.ACTIVE as number)
         throw new HttpError("Trade is not available", 400);
 
       // 4. TradeHistory 생성
