@@ -28,7 +28,8 @@ export class TradeController {
 
   async findTrades(req: Request, res: Response): Promise<Response> {
     try {
-      const findTradeDto: FindTradeDto = req.query as any;
+      // const findTradeDto: FindTradeDto = req.query;
+      const findTradeDto: FindTradeDto = req.body;
 
       const result = await this.tradeService.findTrades(findTradeDto);
       return res.status(200).json(result);
@@ -59,7 +60,8 @@ export class TradeController {
   async findMyTrades(req: Request, res: Response): Promise<Response> {
     try {
       const user = req.user;
-      const findTradeDto: FindTradeDto = req.query as any;
+      // const findTradeDto: FindTradeDto = req.query;
+      const findTradeDto: FindTradeDto = req.body;
 
       const result = await this.tradeService.findMyTrades(user, findTradeDto);
       return res.status(200).json(result);
@@ -77,8 +79,8 @@ export class TradeController {
       const user = req.user;
       const { id } = req.params;
 
-      const result = await this.tradeService.deleteTrade(user, Number(id));
-      return res.status(200).json(result);
+      await this.tradeService.deleteTrade(user, Number(id));
+      return res.status(200).json();
     } catch (error) {
       if (error instanceof HttpError) {
         return res.status(error.statusCode).json({ message: error.message });

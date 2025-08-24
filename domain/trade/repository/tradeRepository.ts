@@ -61,7 +61,6 @@ export class TradeRepository {
       type,
       baseSymbol,
       quoteSymbol,
-      amount,
       priceMin,
       priceMax,
       status,
@@ -86,14 +85,6 @@ export class TradeRepository {
     // 2. symbol 필터
     if (baseSymbol) where.baseSymbol = baseSymbol;
     if (quoteSymbol) where.quoteSymbol = quoteSymbol;
-
-    // 3. amount 필터
-    if (amount !== undefined) {
-      where.AND = [
-        { minAmont: { lte: amount } },
-        { maxAmount: { gte: amount } },
-      ];
-    }
 
     // 4. price 필터
     if (priceMin !== undefined || priceMax !== undefined) {
@@ -131,7 +122,7 @@ export class TradeRepository {
 
     // 정렬 로직
     let orderBy: any;
-    if (sortBy === "user.grade") {
+    if (sortBy === "grade") {
       orderBy = { user: { grade: sortOrder } };
     } else if (sortBy === "tradeVolume") {
       orderBy = [{ price: sortOrder }, { maxAmount: sortOrder }];
@@ -175,7 +166,6 @@ export class TradeRepository {
   async createTrade(userId: number, data: CreateTradeDto) {
     return await this.prisma.trade.create({
       data: { ...data, userId, option: data.option ?? 0 },
-      include: { user: true },
     });
   }
 
