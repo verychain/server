@@ -114,7 +114,6 @@ model TradeHistory {
   totalPrice         Decimal   @db.Decimal(18, 8)
   fee                Decimal   @db.Decimal(18, 8)
   tokenDepositedAt   DateTime?
-  paymentSentAt      DateTime?
   paymentConfirmedAt DateTime?
   completedAt        DateTime?
   failedAt           DateTime?

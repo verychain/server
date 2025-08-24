@@ -177,7 +177,23 @@ export class TradeController {
       if (error instanceof HttpError) {
         return res.status(error.statusCode).json({ message: error.message });
       }
-      console.error("[completeTrade@TradeController] Error:", error);
+      console.error("[cancelTrade@TradeController] Error:", error);
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+
+  async failTrade(req: Request, res: Response): Promise<Response> {
+    try {
+      const user = req.user;
+      const { id } = req.params;
+
+      const result = await this.tradeService.failTrade(user, Number(id));
+      return res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.statusCode).json({ message: error.message });
+      }
+      console.error("[failTrade@TradeController] Error:", error);
       return res.status(500).json({ message: "Internal Server Error" });
     }
   }

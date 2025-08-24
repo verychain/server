@@ -57,5 +57,11 @@ router.post(
   authMiddleware,
   tradeController.cancelTrade.bind(tradeController)
 );
+// 거래 실패
+router.post(
+  "/:id/expire",
+  authMiddleware,
+  tradeController.failTrade.bind(tradeController)
+);
 
 export default router;

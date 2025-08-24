@@ -49,7 +49,7 @@ export class TradeRepository {
     if (trade) {
       return {
         ...trade,
-        id: this.encodeId(trade.id),
+        hashedId: this.encodeId(trade.id),
       };
     }
 
@@ -203,16 +203,23 @@ export class TradeRepository {
 
     if (status === TradeHistoryStatus.TOKEN_DEPOSITED) {
       updateData.tokenDepositedAt = new Date();
-      updateData.sellerTxHash = txHash;
+      updateData.txHash = txHash;
     }
     if (status === TradeHistoryStatus.PAYMENT_CONFIRMED)
       updateData.paymentConfirmedAt = new Date();
     if (status === TradeHistoryStatus.COMPLETED) {
       updateData.completedAt = new Date();
-      updateData.contractTxHash = txHash;
+      updateData.txHash = updateData.txHash
+        ? `${updateData.txHash},${txHash}`
+        : txHash;
     }
     if (status === TradeHistoryStatus.CANCELLED)
       updateData.cancelledAt = new Date();
+    if (txHash) {
+      updateData.txHash = updateData.txHash
+        ? `${updateData.txHash},${txHash}`
+        : txHash;
+    }
     if (status === TradeHistoryStatus.FAILED) updateData.failedAt = new Date();
 
     return await this.prisma.tradeHistory.update({
