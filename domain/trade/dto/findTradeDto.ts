@@ -10,15 +10,16 @@ import {
 } from "class-validator";
 import { Transform, Type } from "class-transformer";
 import { SortOrder, TradeSortField } from "./enumType";
+import { ArrayTransform } from "@/common/utils/arrayTransform";
 
 export class FindTradeDto {
   // ========================================================
   // 필터링 옵션들
   // ========================================================
 
-  // @IsEnum(TradeType)
-  @IsNumber()
+  @IsNumber({}, { each: true })
   @IsOptional()
+  @ArrayTransform()
   type?: number[];
 
   @IsString()
@@ -33,12 +34,6 @@ export class FindTradeDto {
   @Min(0)
   @IsOptional()
   @Type(() => Number)
-  amount?: number;
-
-  @IsNumber()
-  @Min(0)
-  @IsOptional()
-  @Type(() => Number)
   priceMin?: number;
 
   @IsNumber()
@@ -47,9 +42,9 @@ export class FindTradeDto {
   @Type(() => Number)
   priceMax?: number;
 
-  // @IsEnum(TradeStatus)
-  @IsNumber()
+  @IsNumber({}, { each: true })
   @IsOptional()
+  @ArrayTransform()
   status?: number[];
 
   @IsString()

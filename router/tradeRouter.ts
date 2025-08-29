@@ -6,20 +6,20 @@ const router = Router();
 
 // 거래 생성
 router.post(
-  "/",
+  "/create",
   authMiddleware,
   tradeController.createTrade.bind(tradeController)
 );
 // 모든 거래 조회
-router.get("/", tradeController.findTrades.bind(tradeController));
-// 특정 거래 조회
-router.get("/:id", tradeController.findTradeById.bind(tradeController));
+router.post("/", tradeController.findTrades.bind(tradeController));
 // 내 거래 조회
-router.get(
-  "/my/trades",
+router.post(
+  "/my",
   authMiddleware,
   tradeController.findMyTrades.bind(tradeController)
 );
+// 특정 거래 조회
+router.get("/:id", tradeController.findTradeById.bind(tradeController));
 // 거래 삭제
 router.delete(
   "/:id",
@@ -50,6 +50,18 @@ router.post(
   "/:id/complete",
   authMiddleware,
   tradeController.completeTrade.bind(tradeController)
+);
+// 거래 취소
+router.post(
+  "/:id/cancel",
+  authMiddleware,
+  tradeController.cancelTrade.bind(tradeController)
+);
+// 거래 실패
+router.post(
+  "/:id/expire",
+  authMiddleware,
+  tradeController.failTrade.bind(tradeController)
 );
 
 export default router;

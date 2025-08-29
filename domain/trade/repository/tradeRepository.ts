@@ -4,12 +4,29 @@ import { CreateTradeDto } from "../dto/createTradeDto";
 import { FindTradeDto } from "../dto/findTradeDto";
 import { CreateTradeHistoryDto } from "../dto/createTradeHistory";
 import { CreatePriceHistoryDto } from "../dto/createPriceHistory";
+import { Buffer } from "buffer";
 
 export class TradeRepository {
   private prisma: PrismaClient;
 
   constructor() {
     this.prisma = new PrismaClient();
+  }
+
+  private encodeId(id: number): string {
+    let encoded = id.toString();
+    for (let i = 0; i < 4; i++) {
+      encoded = Buffer.from(encoded).toString("base64");
+    }
+    return encoded;
+  }
+
+  private decodeId(encodedId: string): number {
+    let decoded = encodedId;
+    for (let i = 0; i < 4; i++) {
+      decoded = Buffer.from(decoded, "base64").toString();
+    }
+    return parseInt(decoded);
   }
 
   async findTradeById(id: number) {
@@ -19,23 +36,24 @@ export class TradeRepository {
           id: true,
           nickname: true,
           grade: true,
-
-          buyerTrades: {
-            where: { deletedAt: null },
-            select: { id: true, status: true },
-          },
-          sellerTrades: {
-            where: { deletedAt: null },
-            select: { id: true, status: true },
-          },
         },
       },
+      history: true,
     };
 
-    return await this.prisma.trade.findUnique({
+    const trade = await this.prisma.trade.findUnique({
       where: { id, deletedAt: null },
       include,
     });
+
+    if (trade) {
+      return {
+        ...trade,
+        hashedId: this.encodeId(trade.id),
+      };
+    }
+
+    return trade;
   }
 
   async findTradesByOptions(findTradeDto: FindTradeDto) {
@@ -43,7 +61,6 @@ export class TradeRepository {
       type,
       baseSymbol,
       quoteSymbol,
-      amount,
       priceMin,
       priceMax,
       status,
@@ -68,14 +85,6 @@ export class TradeRepository {
     // 2. symbol 필터
     if (baseSymbol) where.baseSymbol = baseSymbol;
     if (quoteSymbol) where.quoteSymbol = quoteSymbol;
-
-    // 3. amount 필터
-    if (amount !== undefined) {
-      where.AND = [
-        { minAmont: { lte: amount } },
-        { maxAmount: { gte: amount } },
-      ];
-    }
 
     // 4. price 필터
     if (priceMin !== undefined || priceMax !== undefined) {
@@ -113,7 +122,7 @@ export class TradeRepository {
 
     // 정렬 로직
     let orderBy: any;
-    if (sortBy === "user.grade") {
+    if (sortBy === "grade") {
       orderBy = { user: { grade: sortOrder } };
     } else if (sortBy === "tradeVolume") {
       orderBy = [{ price: sortOrder }, { maxAmount: sortOrder }];
@@ -157,7 +166,6 @@ export class TradeRepository {
   async createTrade(userId: number, data: CreateTradeDto) {
     return await this.prisma.trade.create({
       data: { ...data, userId, option: data.option ?? 0 },
-      include: { user: true },
     });
   }
 
@@ -195,16 +203,23 @@ export class TradeRepository {
 
     if (status === TradeHistoryStatus.TOKEN_DEPOSITED) {
       updateData.tokenDepositedAt = new Date();
-      updateData.sellerTxHash = txHash;
+      updateData.txHash = txHash;
     }
     if (status === TradeHistoryStatus.PAYMENT_CONFIRMED)
       updateData.paymentConfirmedAt = new Date();
     if (status === TradeHistoryStatus.COMPLETED) {
       updateData.completedAt = new Date();
-      updateData.contractTxHash = txHash;
+      updateData.txHash = updateData.txHash
+        ? `${updateData.txHash},${txHash}`
+        : txHash;
     }
     if (status === TradeHistoryStatus.CANCELLED)
       updateData.cancelledAt = new Date();
+    if (txHash) {
+      updateData.txHash = updateData.txHash
+        ? `${updateData.txHash},${txHash}`
+        : txHash;
+    }
     if (status === TradeHistoryStatus.FAILED) updateData.failedAt = new Date();
 
     return await this.prisma.tradeHistory.update({

@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -14,7 +8,170 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------------------------
+model User {
+  username         String            @unique
+  password         String
+  nickname         String            @unique
+  phone            String            @unique
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  deletedAt        DateTime?
+  nation           Int
+  id               Int               @id @default(autoincrement())
+  grade            Int               @default(0)
+  role             Int               @default(1)
+  customerServices CustomerService[]
+  Kyc              Kyc?
+  fromUserLikes    LikeUser[]        @relation("FromUserLikes")
+  toUserLikes      LikeUser[]        @relation("ToUserLikes")
+  notifications    Notification[]
+  points           Point[]
+  buyerTrades      TradeHistory[]    @relation("BuyerTrades")
+  sellerTrades     TradeHistory[]    @relation("SellerTrades")
+  trades           Trade[]
+  wallet           Wallet?
+
+  @@map("users")
+}
+
+model Kyc {
+  realName  String
+  bankName  String
+  account   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  id        Int       @id @default(autoincrement())
+  userId    Int       @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("kyc")
+}
+
+model Wallet {
+  address   String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  id        Int       @id @default(autoincrement())
+  userId    Int       @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model Point {
+  amount    Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  reason    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("points")
+}
+
+model Notification {
+  process   Boolean   @default(false)
+  message   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Trade {
+  baseSymbol       String
+  quoteSymbol      String
+  minAmount        Decimal           @db.Decimal(18, 8)
+  maxAmount        Decimal           @db.Decimal(18, 8)
+  price            Decimal           @db.Decimal(18, 8)
+  expiresAt        DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  deletedAt        DateTime?
+  id               Int               @id @default(autoincrement())
+  userId           Int
+  type             Int
+  option           Int               @default(0)
+  status           Int               @default(0)
+  customerServices CustomerService[]
+  priceHistories   PriceHistory[]
+  history          TradeHistory[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("trades")
+}
+
+model TradeHistory {
+  fixedAmount        Decimal   @db.Decimal(18, 8)
+  totalPrice         Decimal   @db.Decimal(18, 8)
+  fee                Decimal   @db.Decimal(18, 8)
+  tokenDepositedAt   DateTime?
+  paymentConfirmedAt DateTime?
+  completedAt        DateTime?
+  failedAt           DateTime?
+  cancelledAt        DateTime?
+  txHash             String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+  id                 Int       @id @default(autoincrement())
+  tradeId            Int
+  buyerId            Int
+  sellerId           Int
+  status             Int       @default(0)
+  buyer              User      @relation("BuyerTrades", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller             User      @relation("SellerTrades", fields: [sellerId], references: [id], onDelete: Cascade)
+  trade              Trade     @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  @@map("trade_histories")
+}
+
+model PriceHistory {
+  baseSymbol  String
+  quoteSymbol String
+  price       Decimal  @db.Decimal(18, 8)
+  amount      Decimal  @db.Decimal(18, 8)
+  createdAt   DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  tradeId     Int
+  trade       Trade    @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  @@map("price_histories")
+}
+
+model LikeUser {
+  id         Int  @id @default(autoincrement())
+  fromUserId Int
+  toUserId   Int
+  fromUser   User @relation("FromUserLikes", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User @relation("ToUserLikes", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+  @@map("like_users")
+}
+
+model CustomerService {
+  content   String
+  process   Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  tradeId   Int
+  trade     Trade     @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("customer_services")
+}
 
 enum Role {
   ADMIN
@@ -28,96 +185,11 @@ enum Grade {
   PLATINUM
 }
 
-model User {
-  id Int @id @default(autoincrement())
-  username      String      @unique                // 이메일
-  password      String                             // 비밀번호
-  nickname      String      @unique                // 닉네임
-  nation        Int                             // 국가
-  phone         String      @unique                // 전화번호
-  grade         Grade       @default(BRONZE)       // 멤버십 등급
-  role          Role        @default(USER)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  deletedAt     DateTime?
-
-  Kyc           Kyc?
-  wallet        Wallet?
-  points        Point[]
-  notifications Notification[]
-  trades        Trade[]                                   // 내가 생성한 거래
-  buyerTrades   TradeHistory[] @relation("BuyerTrades")   // 내가 구매한 거래
-  sellerTrades  TradeHistory[] @relation("SellerTrades")  // 내가 판매한 거래
-  fromUserLikes LikeUser[] @relation("FromUserLikes")  // 내가 준 좋아요
-  toUserLikes   LikeUser[] @relation("ToUserLikes")    // 내가 받은 좋아요
-  customerServices CustomerService[]                      // 고객센터 문의
-
-  @@map("users")
-}
-
-model Kyc {
-  id Int @id @default(autoincrement())
-  userId      Int   @unique
-  realName    String                          // 실명
-  bankName    String                          // 은행
-  account     String                          // 계좌 번호
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("kyc")
-}
-
-model Wallet {
-  id Int @id @default(autoincrement())
-  userId    Int   @unique
-  address   String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("wallets")
-}
-
 enum PointReason {
-  TRADE_SUCCESS     // 거래 성공시
-  AD_WATCH          // 광고 시청시
-  TRADE_CANCEL      // 거래 강제 취소시
+  TRADE_SUCCESS
+  AD_WATCH
+  TRADE_CANCEL
 }
-
-model Point {
-  id Int @id @default(autoincrement())
-  userId    Int
-  amount    Int      // 양수: 적립, 음수: 사용 or 차감
-  reason    PointReason
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("points")
-}
-
-model Notification {
-  id Int @id @default(autoincrement())
-  userId    Int
-  process   Boolean  @default(false)
-  message   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("notifications")
-}
-
-// ---------------------------
 
 enum TradeType {
   BUY
@@ -125,121 +197,28 @@ enum TradeType {
 }
 
 enum TradeStatus {
-  ACTIVE    // 활성화
-  PENDING   // 거래 진행 중
-  COMPLETED // 완료
-  CANCELLED // 취소
-  EXPIRED   // 만료
+  ACTIVE
+  PENDING
+  COMPLETED
+  CANCELLED
+  EXPIRED
 }
 
 enum TradeOption {
-  BANK_TRANSFER   // 계좌이체
-}
-
-model Trade {
-  id Int @id @default(autoincrement())
-  userId        Int    
-  type          Int
-
-  baseSymbol    String        // 기준 통화 (ex. VERY)
-  quoteSymbol   String        // 쿼트 통화 (ex. KRW, USDT)
-  minAmount     Decimal       @db.Decimal(18, 8)
-  maxAmount     Decimal       @db.Decimal(18, 8)
-  price         Decimal       @db.Decimal(18, 8)  // 1개당 가격
-  option        Int?
-
-  status        Int @default(0)
-  expiresAt     DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  deletedAt     DateTime?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  history TradeHistory[]
-  priceHistories PriceHistory[]
-  customerServices CustomerService[]
-
-  @@map("trades")
+  BANK_TRANSFER
+  KAKAO_PAY
+  TOSS
+  NAVER_PAY
+  REMITLY
+  PAYSEND
 }
 
 enum TradeHistoryStatus {
-  INITIATED         // 거래 세션 시작
-  TOKEN_DEPOSITED   // 토큰 예치 완료 (판매자가 변경)
-  PAYMENT_CONFIRMED // 원화 입금 완료 (구매자가 변경)
-  COMPLETED         // 거래 완료 (판매자가 변경)
-  CANCELLED         // 거래 취소
-  FAILED            // 거래 실패 (= 이의 제기)
-}
-
-model TradeHistory {
-  id Int @id @default(autoincrement())
-  tradeId             Int
-  buyerId             Int
-  sellerId            Int
-  status              Int @default(0)
-
-  fixedAmount         Decimal             @db.Decimal(18, 8)    // 최종 수량
-  totalPrice          Decimal             @db.Decimal(18, 8)    // 최종 총 가격
-  fee                 Decimal             @db.Decimal(18, 8)    // 플랫폼에 지불할 수수료
-
-  tokenDepositedAt    DateTime?           // 토큰 예치 완료 시간
-  paymentConfirmedAt  DateTime?           // 원화 입금 완료 시간
-  completedAt         DateTime?           // 거래 완료 시간
-  failedAt            DateTime?           // 거래 실패 시간
-  cancelledAt         DateTime?           // 거래 취소 시간
-  
-  sellerTxHash        String?             // 트랜잭션 해시 (판매자 -> 컨트랙트)
-  contractTxHash      String?             // 트랜잭션 해시 (컨트랙트 -> 구매자)
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  deletedAt           DateTime?
-
-  trade  Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
-  buyer  User  @relation("BuyerTrades", fields: [buyerId], references: [id], onDelete: Cascade)
-  seller User  @relation("SellerTrades", fields: [sellerId], references: [id], onDelete: Cascade)
-
-  @@map("trade_histories")
-}
-
-model PriceHistory {
-  id Int @id @default(autoincrement())
-  tradeId       Int
-  baseSymbol    String
-  quoteSymbol   String
-  price         Decimal   @db.Decimal(18, 8)
-  amount        Decimal   @db.Decimal(18, 8)
-  createdAt     DateTime  @default(now())
-
-  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
-  
-  @@map("price_histories")
-}
-
-model LikeUser {
-  id Int @id @default(autoincrement())
-  fromUserId    Int
-  toUserId      Int
-
-  fromUser User @relation("FromUserLikes", fields: [fromUserId], references: [id], onDelete: Cascade)
-  toUser   User @relation("ToUserLikes", fields: [toUserId], references: [id], onDelete: Cascade)
-
-  @@unique([fromUserId, toUserId]) // 좋아요 중복 방지
-
-  @@map("like_users")
-}
-
-model CustomerService {
-  id Int @id @default(autoincrement())
-  userId        Int 
-  tradeId       Int
-  content       String    // 문의 내용
-  process       Boolean   @default(true)  // 진행 중 (true), 완료 (false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
-
-  @@map("customer_services")
+  INITIATED
+  TOKEN_DEPOSITED
+  PAYMENT_SENT
+  PAYMENT_CONFIRMED
+  COMPLETED
+  CANCELLED
+  FAILED
 }
