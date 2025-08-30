@@ -1,8 +1,79 @@
-# 📘 Project Conventions
+# VeryPool - P2P Cryptocurrency Trading Platform
 
-## 🧩 Domain-Driven Layered Structure
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
+![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge&logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
+![Ethereum](https://img.shields.io/badge/Ethereum-3C3C3D?style=for-the-badge&logo=ethereum&logoColor=white)
 
-This project follows a **Domain-Driven Layered Architecture** for better modularity, scalability, and maintainability.
+**A blockchain-based platform for safe and transparent P2P cryptocurrency trading**
+
+---
+
+## Table of Contents
+
+- [Key Features](#-key-features)
+- [Tech Stack](#-tech-stack)
+- [Architecture](#-architecture)
+- [Installation & Setup](#-installation--setup)
+- [API Documentation](#-api-documentation)
+
+---
+
+## Key Features
+
+### User Management
+
+- Registration/Login (JWT Authentication)
+- Profile management and KYC verification
+- Wallet address registration and management
+- Point system
+
+### Trading System
+
+- **P2P Trade Creation**: Buy/sell order registration
+- **Trade Matching**: Automatic matching between buyers and sellers
+- **Token Deposit**: Secure token deposit through smart contracts
+- **Payment Verification**: Support for various payment methods
+- **Trade Completion**: Automatic token transfer through blockchain
+
+### Trade Status Management
+
+- `INITIATED`: Trade started
+- `TOKEN_DEPOSITED`: Token deposit completed
+- `PAYMENT_SENT`: Payment completed
+- `PAYMENT_CONFIRMED`: Payment confirmed
+- `COMPLETED`: Trade completed
+- `CANCELLED`: Trade cancelled
+- `FAILED`: Trade failed
+
+### Payment Methods
+
+- Bank Transfer (BANK_TRANSFER)
+- KakaoPay (KAKAO_PAY)
+- Toss (TOSS)
+- NaverPay (NAVER_PAY)
+- Remitly
+- Paysend
+
+---
+
+## Tech Stack
+
+- **Runtime**: Node.js
+- **Language**: TypeScript
+- **Framework**: Express.js 5.1.0
+- **Database**: PostgreSQL
+- **ORM**: Prisma 6.12.0
+- **Authentication**: JWT + bcrypt
+- **Library**: ethers.js 6.15.0
+
+---
+
+## Architecture
+
+### Domain-Driven Layered Structure
 
 ```
 
@@ -11,91 +82,97 @@ This project follows a **Domain-Driven Layered Architecture** for better modular
 ┃ ┣ 📁 controller/
 ┃ ┣ 📁 service/
 ┃ ┗ 📁 repository/
+┃ ┗ 📁 dto/
 ┣ 📁 trade/
 ┃ ┣ 📁 controller/
 ┃ ┣ 📁 service/
 ┃ ┗ 📁 repository/
+┃ ┗ 📁 dto/
+┣ 📁 chain/
+┃ ┣ 📁 service/
 📁 router/
 ┣ 📄 userRouter.js
 ┗ 📄 tradeRouter.js
 
 ```
 
+### Layer Responsibilities
+
+| Layer          | Responsibility                                        |
+| -------------- | ----------------------------------------------------- |
+| **Controller** | HTTP request handling, data validation, service calls |
+| **Service**    | Business logic, error handling                        |
+| **Repository** | Database queries, data access                         |
+
 ---
 
-## 📦 Router Convention
+## Installation & Setup
 
-### 1. Create a Router File
+### 1. Clone Repository
 
 ```bash
-# Example
-touch router/userRouter.js
-````
-
-### 2. Register the Router in `index.js`
-
-Routers should be registered in `index.js` using a **parent domain path**.
-
-```js
-// index.js
-const userRouter = require('./router/userRouter');
-app.use(`${API_PREFIX}/user`, userRouter); // Exposes /users/login, /users/me, etc.
+git clone https://github.com/verychain/server.git
+cd server
 ```
 
-> 📌 **Convention**: Use `app.use(`${API_PREFIX}/user`, userRouter);` format for clear route scoping.
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Environment Variables
+
+```bash
+cp .env.example .env
+```
+
+Required environment variables:
+
+```env
+# Database
+DATABASE_URL=""
+
+# JWT
+JWT_SECRET="your-jwt-secret"
+
+# Blockchain
+BLOCKCHAIN_RPC_URL="https://rpc.verylabs.io"
+CORE_CONTRACT_ADDRESS="0x..."
+TREASURY_CONTRACT_ADDRESS="0x..."
+RELAYER_WALLET_ADDRESS="0x..."
+RELAYER_PRIVATE_KEY="0x..."
+
+# Server
+PORT=3000
+API_PREFIX="/api"
+```
+
+### 4. Database Setup
+
+```bash
+npx prisma generate
+
+npx prisma migrate dev
+
+npx prisma db seed
+```
+
+### 5. Start Development Server
+
+```bash
+npm run dev
+```
+
+The server will run at `http://localhost:3000`.
 
 ---
 
-## ⚙️ Layer Responsibilities
+## 📚 API Documentation
 
-| Layer          | Responsibility                                                                                                         |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Controller** | Receives the request, extracts data (params/body), and calls service layer. Handles all exceptions from service layer. |
-| **Service**    | Contains core business logic. All errors and exceptions must be thrown from this layer using `throw new Error(...)`.   |
-| **Repository** | Contains direct database query logic only. No business logic should be written here.                                   |
+### Swagger UI
 
----
+API documentation is available at:
 
-## ❗ Error Handling Convention
-
-* **All errors must be thrown in the service layer**
-  Example:
-
-  ```js
-  // service/userService.js
-  if (!user) {
-    throw new Error('User not found');
-  }
-  ```
-
-* **Controller must handle all errors using try/catch**
-
-  ```js
-  // controller/userController.js
-  exports.getUser = async (req, res) => {
-    try {
-      const user = await userService.getUserById(req.params.id);
-      res.json(user);
-    } catch (err) {
-      res.status(400).json({ error: err.message });
-    }
-  };
-  ```
-
----
-
-## ✍️ Naming Conventions
-
-* **Controller functions**: Clearly describe the action (e.g., `signup`, `login`, `getUserInfo`)
-* **Service functions**: Express domain-level operations (e.g., `createUser`, `verifyPassword`)
-* **Repository functions**: Simple DB operations (e.g., `findByEmail`, `insertUser`)
-
----
-
-## 🧪 Recommended Structure
-
-* `common/utils/`: Shared utility functions across domains
-* `middlewares/`: Common middleware like authentication, logging
-* `config/`: Configuration files (e.g., `.env`, DB, CORS)
-
----
+- **Local**: `http://localhost:3000/docs`
+- **Online**: [Postman Documentation](https://documenter.getpostman.com/view/47758969/2sB3BKGU1n#c0e2c455-f04b-4d1c-a332-48bf511c602e)
