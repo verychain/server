@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  username         String            @unique
+  password         String
+  nickname         String            @unique
+  phone            String            @unique
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  deletedAt        DateTime?
+  nation           Int
+  id               Int               @id @default(autoincrement())
+  grade            Int               @default(0)
+  role             Int               @default(1)
+  customerServices CustomerService[]
+  Kyc              Kyc?
+  fromUserLikes    LikeUser[]        @relation("FromUserLikes")
+  toUserLikes      LikeUser[]        @relation("ToUserLikes")
+  notifications    Notification[]
+  points           Point[]
+  buyerTrades      TradeHistory[]    @relation("BuyerTrades")
+  sellerTrades     TradeHistory[]    @relation("SellerTrades")
+  trades           Trade[]
+  wallet           Wallet?
+
+  @@map("users")
+}
+
+model Kyc {
+  realName  String
+  bankName  String
+  account   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  id        Int       @id @default(autoincrement())
+  userId    Int       @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("kyc")
+}
+
+model Wallet {
+  address   String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  id        Int       @id @default(autoincrement())
+  userId    Int       @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model Point {
+  amount    Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  reason    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("points")
+}
+
+model Notification {
+  process   Boolean   @default(false)
+  message   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Trade {
+  baseSymbol       String
+  quoteSymbol      String
+  minAmount        Decimal           @db.Decimal(18, 8)
+  maxAmount        Decimal           @db.Decimal(18, 8)
+  price            Decimal           @db.Decimal(18, 8)
+  expiresAt        DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  deletedAt        DateTime?
+  id               Int               @id @default(autoincrement())
+  userId           Int
+  type             Int
+  option           Int               @default(0)
+  status           Int               @default(0)
+  customerServices CustomerService[]
+  priceHistories   PriceHistory[]
+  history          TradeHistory[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("trades")
+}
+
+model TradeHistory {
+  fixedAmount        Decimal   @db.Decimal(18, 8)
+  totalPrice         Decimal   @db.Decimal(18, 8)
+  fee                Decimal   @db.Decimal(18, 8)
+  tokenDepositedAt   DateTime?
+  paymentConfirmedAt DateTime?
+  completedAt        DateTime?
+  failedAt           DateTime?
+  cancelledAt        DateTime?
+  txHash             String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+  id                 Int       @id @default(autoincrement())
+  tradeId            Int
+  buyerId            Int
+  sellerId           Int
+  status             Int       @default(0)
+  buyer              User      @relation("BuyerTrades", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller             User      @relation("SellerTrades", fields: [sellerId], references: [id], onDelete: Cascade)
+  trade              Trade     @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  @@map("trade_histories")
+}
+
+model PriceHistory {
+  baseSymbol  String
+  quoteSymbol String
+  price       Decimal  @db.Decimal(18, 8)
+  amount      Decimal  @db.Decimal(18, 8)
+  createdAt   DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  tradeId     Int
+  trade       Trade    @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
+  @@map("price_histories")
+}
+
+model LikeUser {
+  id         Int  @id @default(autoincrement())
+  fromUserId Int
+  toUserId   Int
+  fromUser   User @relation("FromUserLikes", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User @relation("ToUserLikes", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+  @@map("like_users")
+}
+
+model CustomerService {
+  content   String
+  process   Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  tradeId   Int
+  trade     Trade     @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("customer_services")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Grade {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum PointReason {
+  TRADE_SUCCESS
+  AD_WATCH
+  TRADE_CANCEL
+}
+
+enum TradeType {
+  BUY
+  SELL
+}
+
+enum TradeStatus {
+  ACTIVE
+  PENDING
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum TradeOption {
+  BANK_TRANSFER
+  KAKAO_PAY
+  TOSS
+  NAVER_PAY
+  REMITLY
+  PAYSEND
+}
+
+enum TradeHistoryStatus {
+  INITIATED
+  TOKEN_DEPOSITED
+  PAYMENT_SENT
+  PAYMENT_CONFIRMED
+  COMPLETED
+  CANCELLED
+  FAILED
+}
